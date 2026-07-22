@@ -79,49 +79,48 @@ jobs:
           releaseDraft: true
           prerelease: false
 
-      # tauri-action reports every built installer as a JSON array in `artifactPaths`;
-      # flatten it to a newline list so later steps can checksum + attest each file.
-      - name: List desktop artifacts
-        id: artifacts
+      # Discover the installers tauri ACTUALLY produced by scanning the bundle output,
+      # not tauri-action's `artifactPaths`. That output lists the raw `.app` *directory* on
+      # macOS (so the uploaded `.app.tar.gz` never gets covered), and on the v0.2.0 run its
+      # `.msi` entry failed the per-file test and was silently skipped. Copying the real
+      # bundle files into a flat dist/ makes checksums, the aggregate SHA256SUMS, and the
+      # provenance attestation cover exactly what ships. Bundle targets are pinned in
+      # tauri.conf.json (no `app` target, so no redundant `.app.tar.gz`), so this extension
+      # set is the complete ship list per platform. `find` (not a `**` glob) keeps this
+      # working on the macOS runner's bash 3.2, which has no `globstar`.
+      - name: Collect + checksum desktop installers
         shell: bash
-        env:
-          ARTIFACT_PATHS: ${{ steps.tauri.outputs.artifactPaths }}
         run: |
-          {
-            echo 'paths<<__PD_ARTIFACTS_EOF__'
-            printf '%s' "$ARTIFACT_PATHS" | jq -r '.[]'
-            echo '__PD_ARTIFACTS_EOF__'
-          } >> "$GITHUB_OUTPUT"
-
-      # Mirror the CLI sha256 step for every installer (.dmg/.msi/.AppImage/.deb/…).
-      - name: Checksum desktop installers
-        shell: bash
-        env:
-          PATHS: ${{ steps.artifacts.outputs.paths }}
-        run: |
-          while IFS= read -r p; do
-            [ -n "$p" ] || continue
-            p="${p//\\//}"   # normalize Windows backslashes so dirname/basename split on /
-            [ -f "$p" ] || { echo "skip (not a file): $p"; continue; }
-            dir=$(dirname "$p"); file=$(basename "$p")
-            ( cd "$dir" && { sha256sum "$file" || shasum -a 256 "$file"; } ) > "${file}.sha256"
-            echo "checksummed: ${file}"
-          done <<< "$PATHS"
-          ls -l ./*.sha256 2>/dev/null || echo "no installer checksums produced"
+          mkdir -p dist
+          find desktop/src-tauri/target -type f -path '*/bundle/*' \
+            \( -name '*.dmg' -o -name '*.msi' -o -name '*-setup.exe' \
+               -o -name '*.AppImage' -o -name '*.deb' -o -name '*.rpm' \) \
+            -exec cp {} dist/ \;
+          cd dist
+          count=0
+          for f in *; do
+            [ -e "$f" ] || continue
+            case "$f" in *.sha256) continue ;; esac
+            { sha256sum "$f" || shasum -a 256 "$f"; } > "${f}.sha256"
+            echo "checksummed: $f"
+            count=$((count + 1))
+          done
+          [ "$count" -gt 0 ] || { echo "::error::no desktop installers found under desktop/src-tauri/target/*/bundle"; exit 1; }
+          ls -l
 
       - name: Upload desktop checksums to draft release
         uses: softprops/action-gh-release@v3
         with:
           draft: true
           tag_name: ${{ github.ref_name }}
-          files: "*.sha256"
+          files: "dist/*.sha256"
 
       # Feed the aggregate SHA256SUMS job (below) without re-reading the draft release.
       - name: Stash desktop checksums for aggregation
         uses: actions/upload-artifact@v4
         with:
           name: checksums-desktop-${{ matrix.platform }}
-          path: "*.sha256"
+          path: "dist/*.sha256"
           if-no-files-found: warn
 
       # Build provenance is best-effort: GitHub attestations aren't available for a private
@@ -131,7 +130,12 @@ jobs:
         uses: actions/attest-build-provenance@v4
         continue-on-error: true
         with:
-          subject-path: ${{ steps.artifacts.outputs.paths }}
+          # Attest the installers, not the .sha256 sidecars. Include-then-exclude order is
+          # load-bearing: the action feeds both lines to one @actions/glob call (mirrors
+          # the cli job).
+          subject-path: |
+            dist/*
+            !dist/*.sha256
 
   # Standalone CLI binaries + Homebrew-shaped archives, uploaded to the same draft release.
   # Build + packaging (universal-macOS lipo, .tar.gz archives, checksums) live in the

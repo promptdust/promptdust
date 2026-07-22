@@ -12,7 +12,28 @@ tested (~96% line coverage on the engine + CLI). Remaining before a signed 1.0.0
 Developer ID / Windows code-signing certificates and a full green run of the CI
 matrix on Windows/Linux runners.
 
-Try it:
+## Install
+
+Prebuilt, read-only binaries for macOS, Windows, and Linux are on the
+[latest release](https://github.com/promptdust/promptdust/releases/latest). The
+builds are honestly unsigned for now and **verifiable from day one**: every
+artifact ships with per-file SHA-256 checksums, a consolidated `SHA256SUMS`,
+CycloneDX SBOMs, and SLSA build-provenance attestations. See
+[`docs/INSTALL.md`](docs/INSTALL.md) for per-OS steps, how to get past the
+first-launch OS warning, and [how to verify a download](docs/INSTALL.md#verify-before-you-run-recommended).
+
+| Platform | Desktop app | CLI |
+|----------|-------------|-----|
+| macOS 12+ (universal) | `PromptDust_*_universal.dmg` | `promptdust-macos` |
+| Windows 10+ (x64) | `PromptDust_*_x64-setup.exe` / `.msi` | `promptdust-windows.exe` |
+| Linux (Ubuntu 22.04+) | `.AppImage` / `.deb` / `.rpm` | `promptdust-linux` |
+
+The CLI binaries are version-less, so their download links are permanent, e.g.
+`releases/latest/download/promptdust-macos`. Homebrew (`brew install promptdust`)
+and winget manifests are authored and go live shortly.
+
+### Build from source
+
 ```sh
 cargo run --bin promptdust -- scan      # CLI, read-only
 cd desktop && cargo tauri dev          # desktop app (needs tauri-cli)
@@ -29,7 +50,9 @@ know about. This tool makes that invisible footprint **visible**. It is an
 **inventory / footprint mapper**, not a "security scanner." It never modifies or
 deletes anything, never reads the actual message content, and sends nothing off your
 machine unless you opt in. Its job is to answer two questions: *what AI data is sitting on my
-machine*, and *what is making it more exposed than it needs to be*.
+machine*, and *what is making it more exposed than it needs to be*. Out of the box it maps
+**60+ AI tools and tool families** (definition DB `2026.07.5`) and degrades any check it
+cannot run on your OS to `unknown`, never a false answer.
 
 ## The four principles (non-negotiable)
 
