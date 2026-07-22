@@ -23,7 +23,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["deb", "rpm", "appimage", "dmg", "nsis", "msi"],
     "createUpdaterArtifacts": false,
     "category": "Utility",
     "shortDescription": "Read-only AI-data footprint scanner",
