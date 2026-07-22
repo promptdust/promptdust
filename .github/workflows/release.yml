@@ -118,7 +118,7 @@ jobs:
 
       # Feed the aggregate SHA256SUMS job (below) without re-reading the draft release.
       - name: Stash desktop checksums for aggregation
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: checksums-desktop-${{ matrix.platform }}
           path: "*.sha256"
@@ -160,7 +160,7 @@ jobs:
           tag_name: ${{ github.ref_name }}
           files: promptdust-*
       - name: Stash CLI checksums for aggregation
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: checksums-cli-${{ matrix.os }}
           path: "*.sha256"
@@ -227,7 +227,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Gather per-artifact checksums
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: checksums-*
           merge-multiple: true
