@@ -1,0 +1,12 @@
+# Git hook that validates every commit message against Conventional Commits
+# (Commitizen). A malformed message is rejected at commit time. This is deliberately
+# the ONLY pre-commit hook — formatting and lint run via `make`/CI, not here.
+#
+# Install once:  make hooks     (== pre-commit install --hook-type commit-msg)
+# Update rev:    pre-commit autoupdate
+repos:
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.16.5
+    hooks:
+      - id: commitizen
+        stages: [commit-msg]

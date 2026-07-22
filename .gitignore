@@ -1,0 +1,57 @@
+# ---- Rust ----
+/target
+**/target/
+# Keep Cargo.lock committed (this workspace ships binaries/apps).
+
+# ---- Node / Tauri UI ----
+node_modules/
+desktop/ui/dist/
+desktop/ui/.vite/
+
+# ---- Tauri build output ----
+desktop/src-tauri/target/
+desktop/src-tauri/gen/
+
+# ---- Secrets / signing material (never commit) ----
+.env
+.env.*
+*.p12
+*.pfx
+*.p8
+*.cer
+*.keychain
+
+# ---- Fuzzing artifacts ----
+fuzz/target/
+fuzz/corpus/
+fuzz/artifacts/
+
+# ---- CLI release-packaging outputs (.github/scripts/package-cli.sh) ----
+# A local run of the packaging script drops these in the repo root; never commit them.
+/promptdust
+/promptdust-macos
+/promptdust-linux
+/promptdust-windows.exe
+/promptdust-*.tar.gz
+/*.sha256
+
+# ---- OS / editor ----
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# ---- Claude Code local config (settings, hooks, skills, agents) ----
+# Kept local (not committed) while we trial the setup ported from another repo.
+# Note: .claude/skills/frontend-design/ was committed before this rule and stays
+# tracked by git (ignore rules don't un-track); everything else here is local.
+.claude/
+.project-backups/
+
+# ---- Planning / strategy / "why" docs (kept local, not committed) ----
+# The plans, philosophy, roadmap, and white paper live here as working material,
+# separate from the committed product documentation in docs/.
+planning/

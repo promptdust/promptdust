@@ -1,0 +1,85 @@
+[
+  {
+    "schema_version": 1,
+    "id": "chatgpt-atlas",
+    "tool": "ChatGPT Atlas",
+    "vendor": "OpenAI",
+    "platforms": ["macos"],
+    "paths": [
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/Atlas",
+        "match": "dir"
+      }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "medium",
+    "base_weight": 40,
+    "max_evidence_class": "presence",
+    "sensitivity_types": ["pii", "source", "secret"],
+    "volatility": "stable",
+    "why": "ChatGPT Atlas is an AI browser; its profile directory holds browsing and assistant history in local browser storage.",
+    "guidance": [
+      "Sign out or clear the browser profile to remove locally stored assistant history."
+    ],
+    "confidence": "unverified"
+  },
+  {
+    "schema_version": 1,
+    "id": "perplexity-comet",
+    "tool": "Perplexity Comet",
+    "vendor": "Perplexity",
+    "platforms": ["macos", "windows"],
+    "paths": [
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/Perplexity Comet",
+        "match": "dir"
+      },
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Local/Perplexity/Comet",
+        "match": "dir"
+      }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "medium",
+    "base_weight": 40,
+    "max_evidence_class": "presence",
+    "sensitivity_types": ["pii", "source", "secret"],
+    "volatility": "stable",
+    "why": "Perplexity Comet is a Chromium-based AI browser; its profile directory carries browsing history and assistant activity in local browser storage.",
+    "guidance": [
+      "Clear the browser profile to remove locally stored history."
+    ],
+    "confidence": "unverified"
+  },
+  {
+    "schema_version": 1,
+    "id": "dia-browser",
+    "tool": "Dia",
+    "vendor": "The Browser Company",
+    "platforms": ["macos"],
+    "paths": [
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/Dia",
+        "match": "dir"
+      }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "medium",
+    "base_weight": 40,
+    "max_evidence_class": "presence",
+    "sensitivity_types": ["pii", "source", "secret"],
+    "volatility": "stable",
+    "why": "Dia is an AI browser; its profile directory holds browsing and assistant history in local browser storage.",
+    "guidance": [
+      "Clear the browser profile to remove locally stored history."
+    ],
+    "confidence": "unverified"
+  }
+]

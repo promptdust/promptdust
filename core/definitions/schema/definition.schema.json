@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://promptdust.dev/schema/definition.schema.json",
+  "title": "promptdust definition",
+  "description": "One known AI-data artifact location.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "id",
+    "tool",
+    "platforms",
+    "paths",
+    "category",
+    "format",
+    "sensitivity",
+    "why"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
+      "description": "Stable unique kebab-case identifier."
+    },
+    "tool": { "type": "string", "minLength": 1, "description": "Human display name." },
+    "vendor": { "type": "string" },
+    "platforms": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "enum": ["macos", "linux", "windows"] }
+    },
+    "paths": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pattern", "match"],
+        "properties": {
+          "os": { "enum": ["macos", "linux", "windows"] },
+          "pattern": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Read-only path selector: ~, $ENV, and globs allowed."
+          },
+          "match": { "enum": ["file", "dir", "either"] }
+        }
+      }
+    },
+    "category": {
+      "enum": [
+        "transcript",
+        "cache",
+        "embedding_index",
+        "config_with_secrets",
+        "log",
+        "attachment"
+      ]
+    },
+    "format": {
+      "enum": [
+        "jsonl",
+        "sqlite",
+        "leveldb",
+        "plaintext",
+        "plist",
+        "json",
+        "binary",
+        "dir"
+      ]
+    },
+    "sensitivity": { "enum": ["low", "medium", "high"] },
+    "inspector": { "type": "string" },
+    "inspector_args": { "type": "object" },
+    "retention_hint": { "type": "string" },
+    "why": { "type": "string", "minLength": 1 },
+    "guidance": { "type": "array", "items": { "type": "string" } },
+    "confidence": { "enum": ["verified", "likely", "unverified"] },
+    "references": { "type": "array", "items": { "type": "string" } },
+    "base_weight": { "type": "integer", "minimum": 0, "maximum": 255 },
+    "max_evidence_class": { "enum": ["presence", "usage", "content"] },
+    "sensitivity_types": {
+      "type": "array",
+      "items": { "enum": ["secret", "pii", "phi", "source"] }
+    },
+    "volatility": { "enum": ["stable", "rolling", "ephemeral"] },
+    "version_detect": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "kind": { "type": "string" }
+      }
+    },
+    "storage_epochs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label"],
+        "properties": {
+          "label": { "type": "string", "minLength": 1 },
+          "note": { "type": "string" }
+        }
+      }
+    }
+  }
+}

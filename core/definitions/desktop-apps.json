@@ -1,0 +1,280 @@
+[
+  {
+    "schema_version": 1,
+    "id": "chatgpt-desktop",
+    "tool": "ChatGPT Desktop",
+    "vendor": "OpenAI",
+    "platforms": ["macos", "windows"],
+    "paths": [
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/com.openai.chat",
+        "match": "dir"
+      },
+      {
+        "os": "macos",
+        "pattern": "~/Library/Containers/com.openai.chat/Data/Library/Application Support",
+        "match": "dir"
+      },
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Local/Packages/OpenAI.ChatGPT-Desktop_*",
+        "match": "dir"
+      }
+    ],
+    "category": "cache",
+    "format": "leveldb",
+    "sensitivity": "medium",
+    "base_weight": 50,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret", "pii", "source"],
+    "volatility": "rolling",
+    "storage_epochs": [
+      { "label": "pre-2024 cleartext", "note": "earlier versions cached conversation data in cleartext outside the app sandbox" },
+      { "label": "2024+ sandboxed", "note": "a 2024 update moved cached storage into the sandbox container" }
+    ],
+    "why": "The ChatGPT desktop app caches conversation data locally; earlier versions stored it in cleartext.",
+    "guidance": [
+      "Keep the app up to date (a 2024 fix moved this into the sandbox container).",
+      "Sign out to clear locally cached conversations."
+    ],
+    "confidence": "likely",
+    "references": ["https://arxiv.org/abs/2505.23938"]
+  },
+  {
+    "schema_version": 1,
+    "id": "claude-desktop",
+    "tool": "Claude Desktop",
+    "vendor": "Anthropic",
+    "platforms": ["macos", "windows", "linux"],
+    "paths": [
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/Claude/Local Storage/leveldb",
+        "match": "dir"
+      },
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/Claude/IndexedDB",
+        "match": "dir"
+      },
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Roaming/Claude/Local Storage/leveldb",
+        "match": "dir"
+      },
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Roaming/Claude/IndexedDB",
+        "match": "dir"
+      },
+      {
+        "os": "linux",
+        "pattern": "~/.config/Claude/Local Storage/leveldb",
+        "match": "dir"
+      },
+      {
+        "os": "linux",
+        "pattern": "~/.config/Claude/IndexedDB",
+        "match": "dir"
+      },
+      {
+        "os": "linux",
+        "pattern": "~/.config/claude-desktop/Local Storage/leveldb",
+        "match": "dir"
+      },
+      {
+        "os": "linux",
+        "pattern": "~/.config/claude-desktop/IndexedDB",
+        "match": "dir"
+      }
+    ],
+    "category": "cache",
+    "format": "leveldb",
+    "sensitivity": "medium",
+    "base_weight": 50,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret", "pii", "source"],
+    "why": "The Claude desktop app (Electron) caches conversation state in local browser storage.",
+    "guidance": ["Sign out to clear locally cached conversation state."],
+    "confidence": "unverified"
+  },
+  {
+    "schema_version": 1,
+    "id": "ms-copilot-app",
+    "tool": "Microsoft Copilot",
+    "vendor": "Microsoft",
+    "platforms": ["windows"],
+    "paths": [
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Local/Packages/Microsoft.Copilot_*",
+        "match": "dir"
+      },
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Local/Packages/Microsoft.MicrosoftCopilot_*",
+        "match": "dir"
+      }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "medium",
+    "base_weight": 50,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source", "secret"],
+    "volatility": "stable",
+    "why": "The Microsoft Copilot app (packaged) caches conversation state in its local app-data container.",
+    "guidance": ["Sign out to clear locally cached conversations."],
+    "confidence": "likely"
+  },
+  {
+    "schema_version": 1,
+    "id": "perplexity-desktop",
+    "tool": "Perplexity Desktop",
+    "vendor": "Perplexity",
+    "platforms": ["macos", "windows"],
+    "paths": [
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/Perplexity",
+        "match": "dir"
+      },
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Roaming/Perplexity",
+        "match": "dir"
+      }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "medium",
+    "base_weight": 50,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source", "secret"],
+    "volatility": "stable",
+    "why": "The Perplexity desktop app caches conversation and search history in local application storage.",
+    "guidance": ["Sign out to clear locally cached conversations."],
+    "confidence": "likely"
+  },
+  {
+    "schema_version": 1,
+    "id": "chatbox-desktop",
+    "tool": "Chatbox",
+    "vendor": "Chatbox",
+    "platforms": ["macos", "windows", "linux"],
+    "paths": [
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/xyz.chatboxapp.app",
+        "match": "dir"
+      },
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Roaming/Chatbox",
+        "match": "dir"
+      },
+      {
+        "os": "linux",
+        "pattern": "~/.config/Chatbox",
+        "match": "dir"
+      }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "medium",
+    "base_weight": 50,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source", "secret"],
+    "volatility": "stable",
+    "why": "Chatbox stores chat sessions with AI providers in its local application-support directory.",
+    "guidance": ["Remove the app's data directory to clear locally stored sessions."],
+    "confidence": "unverified"
+  },
+  {
+    "schema_version": 1,
+    "id": "cherry-studio",
+    "tool": "Cherry Studio",
+    "vendor": "Cherry Studio",
+    "platforms": ["macos", "windows", "linux"],
+    "paths": [
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/CherryStudio",
+        "match": "dir"
+      },
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Roaming/CherryStudio",
+        "match": "dir"
+      },
+      {
+        "os": "linux",
+        "pattern": "~/.config/CherryStudio",
+        "match": "dir"
+      }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "medium",
+    "base_weight": 50,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source", "secret"],
+    "volatility": "stable",
+    "why": "Cherry Studio stores multi-provider chat history in its local application-support directory.",
+    "guidance": ["Remove the app's data directory to clear locally stored history."],
+    "confidence": "unverified"
+  },
+  {
+    "schema_version": 1,
+    "id": "poe-desktop",
+    "tool": "Poe",
+    "vendor": "Quora",
+    "platforms": ["macos", "windows"],
+    "paths": [
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/Poe",
+        "match": "dir"
+      },
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Roaming/Poe",
+        "match": "dir"
+      }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "medium",
+    "base_weight": 50,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source", "secret"],
+    "volatility": "stable",
+    "why": "The Poe desktop app caches conversations with hosted bots in its local application-support directory.",
+    "guidance": ["Sign out to clear locally cached conversations."],
+    "confidence": "unverified"
+  },
+  {
+    "schema_version": 1,
+    "id": "lencx-chatgpt",
+    "tool": "ChatGPT (lencx)",
+    "vendor": "lencx (community)",
+    "platforms": ["macos", "windows", "linux"],
+    "paths": [
+      {
+        "pattern": "~/.chatgpt",
+        "match": "dir"
+      }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "medium",
+    "base_weight": 50,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source", "secret"],
+    "volatility": "stable",
+    "why": "The lencx ChatGPT desktop wrapper stores conversation cache and configuration under a home-directory dotfolder.",
+    "guidance": ["Remove the app's data directory to clear locally stored conversations."],
+    "confidence": "unverified"
+  }
+]

@@ -1,0 +1,26 @@
+name: canary
+
+# Path-drift canary (decision Q-24): the definition catalog is knowledge that rots
+# as AI tools move where they store data. This runs on a schedule (not on PRs) so a
+# dead reference link or a broken catalog surfaces as a tracked signal without ever
+# blocking a merge. Runnable on demand via the Actions tab.
+
+on:
+  schedule:
+    - cron: "17 6 * * *" # daily at 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  path-drift:
+    name: definition path-drift canary
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+      - name: Re-validate catalog + check reference links
+        run: python3 .github/scripts/path_drift_canary.py

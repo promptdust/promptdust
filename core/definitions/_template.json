@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "id": "example-tool-transcripts",
+  "tool": "Example Tool",
+  "vendor": "Example Vendor",
+  "platforms": ["macos", "linux", "windows"],
+  "paths": [
+    { "os": "macos", "pattern": "~/Library/Application Support/ExampleTool/**/*.jsonl", "match": "file" },
+    { "os": "linux", "pattern": "~/.config/exampletool/**/*.jsonl", "match": "file" }
+  ],
+  "category": "transcript",
+  "format": "jsonl",
+  "sensitivity": "high",
+  "base_weight": 80,
+  "max_evidence_class": "content",
+  "sensitivity_types": ["secret", "pii", "source"],
+  "volatility": "stable",
+  "version_detect": { "source": "path/plist-key/json-pointer where a version string can be read (metadata-only)", "kind": "optional hint, e.g. plist-key" },
+  "storage_epochs": [
+    { "label": "e.g. a version era or storage location", "note": "optional detail" }
+  ],
+  "inspector": "jsonl_linecount",
+  "retention_hint": "describe any built-in retention setting, or omit",
+  "why": "One sentence: what this artifact contains and why it matters.",
+  "guidance": [
+    "Actionable, non-destructive suggestion the user can follow.",
+    "e.g. keep this out of cloud-synced folders and git repositories."
+  ],
+  "confidence": "unverified",
+  "references": ["https://link-to-where-you-confirmed-this"]
+}

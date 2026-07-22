@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "default",
+  "description": "Core window access plus user-initiated, signed self-update (Q-03). The updater only checks when the user asks; downloads are verified against the configured pubkey before install.",
+  "windows": ["main"],
+  "permissions": ["core:default", "updater:default"]
+}

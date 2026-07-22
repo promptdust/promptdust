@@ -1,0 +1,25 @@
+[package]
+name = "promptdust-core"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Read-only AI-data footprint scanning engine (no network, metadata-only)"
+
+[lints]
+workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+walkdir = "2"
+globset = "0.4"
+dirs = "6"
+include_dir = "0.7"
+rusqlite = { version = "0.40", features = ["bundled"] }
+
+[dev-dependencies]
+tempfile = "3"
+serde_json = { workspace = true }
+rusqlite = { version = "0.40", features = ["bundled"] }

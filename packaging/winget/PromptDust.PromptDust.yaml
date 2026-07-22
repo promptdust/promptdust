@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.version.1.6.0.schema.json
+#
+# winget version manifest TEMPLATE. `PackageVersion` is filled
+# with the released version at submission time; this set is submitted to
+# microsoft/winget-pkgs, not shipped from this repo.
+PackageIdentifier: PromptDust.PromptDust
+PackageVersion: 0.2.0
+DefaultLocale: en-US
+ManifestType: version
+ManifestVersion: 1.6.0

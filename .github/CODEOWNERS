@@ -1,0 +1,18 @@
+# Code ownership for PromptDust.
+#
+# CODEOWNERS is *enforced* only once branch protection with "Require review from
+# Code Owners" is enabled. Until then this file documents intended ownership and
+# auto-requests reviewers where GitHub can.
+
+# Default owner for the engine and everything not matched below.
+*                                       @subhashb
+
+# The definition catalog is the community-contribution surface (ADR-008): data-only
+# PRs that add/fix where an AI tool stores data. This can move to a dedicated
+# reviewer team (e.g. @promptdust/definition-reviewers) once one exists, so
+# definition PRs don't need full engine review.
+/core/definitions/                       @subhashb
+
+# CI, release, and signing configuration are sensitive — maintainer-owned.
+/.github/                               @subhashb
+/desktop/src-tauri/tauri.conf.json      @subhashb

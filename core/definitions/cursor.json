@@ -1,0 +1,79 @@
+[
+  {
+    "schema_version": 1,
+    "id": "cursor-global-state",
+    "tool": "Cursor",
+    "vendor": "Anysphere",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/Cursor/User/globalStorage/state.vscdb",
+        "match": "file"
+      },
+      {
+        "os": "linux",
+        "pattern": "~/.config/Cursor/User/globalStorage/state.vscdb",
+        "match": "file"
+      },
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Roaming/Cursor/User/globalStorage/state.vscdb",
+        "match": "file"
+      }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "inspector_args": { "tables": ["cursorDiskKV"] },
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret", "pii", "source"],
+    "volatility": "rolling",
+    "storage_epochs": [
+      { "label": "cursorDiskKV", "note": "conversation history lives in the cursorDiskKV key-value table of the global state.vscdb" }
+    ],
+    "why": "Cursor stores conversation history in an unencrypted local SQLite database with no OS keychain protection.",
+    "guidance": [
+      "There is no built-in retention limit; consider periodic manual cleanup.",
+      "Keep the Cursor application-support folder out of cloud-synced locations."
+    ],
+    "confidence": "verified",
+    "references": ["https://www.cursor.com/data-use"]
+  },
+  {
+    "schema_version": 1,
+    "id": "cursor-workspace-state",
+    "tool": "Cursor",
+    "vendor": "Anysphere",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/Cursor/User/workspaceStorage/**/state.vscdb",
+        "match": "file"
+      },
+      {
+        "os": "linux",
+        "pattern": "~/.config/Cursor/User/workspaceStorage/**/state.vscdb",
+        "match": "file"
+      },
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Roaming/Cursor/User/workspaceStorage/**/state.vscdb",
+        "match": "file"
+      }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret", "pii", "source"],
+    "inspector": "sqlite_rowcount",
+    "why": "Per-workspace Cursor state, including chat/composer history, stored in unencrypted SQLite.",
+    "guidance": ["Keep the Cursor application-support folder out of cloud-synced locations."],
+    "confidence": "likely"
+  }
+]

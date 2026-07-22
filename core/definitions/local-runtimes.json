@@ -1,0 +1,290 @@
+[
+  {
+    "schema_version": 1,
+    "id": "lmstudio-conversations",
+    "tool": "LM Studio",
+    "vendor": "Element Labs",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.lmstudio/conversations", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "volatility": "stable",
+    "why": "LM Studio saves each local chat as a JSON transcript under ~/.lmstudio/conversations.",
+    "guidance": [
+      "Keep ~/.lmstudio out of cloud-synced folders and backups if the chats are sensitive."
+    ],
+    "confidence": "likely",
+    "references": ["https://lmstudio.ai/docs/app/basics/chat"]
+  },
+  {
+    "schema_version": 1,
+    "id": "gpt4all-chats",
+    "tool": "GPT4All",
+    "vendor": "Nomic AI",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/nomic.ai/GPT4All/*.chat", "match": "file" },
+      { "os": "linux", "pattern": "~/.local/share/nomic.ai/GPT4All/*.chat", "match": "file" },
+      { "os": "windows", "pattern": "~/AppData/Local/nomic.ai/GPT4All/*.chat", "match": "file" }
+    ],
+    "category": "transcript",
+    "format": "binary",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "GPT4All saves each conversation as a .chat file (a binary transcript) in its data directory.",
+    "guidance": [
+      "Remove old .chat files to clear local conversation history (downloaded models sit in the same directory)."
+    ],
+    "confidence": "likely",
+    "references": ["https://github.com/nomic-ai/gpt4all/wiki/Uninstalling-the-GPT4All-Chat-Application"]
+  },
+  {
+    "schema_version": 1,
+    "id": "jan-threads",
+    "tool": "Jan",
+    "vendor": "Menlo Research",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/Jan/data/threads", "match": "dir" },
+      { "os": "linux", "pattern": "~/.local/share/Jan/data/threads", "match": "dir" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/Jan/data/threads", "match": "dir" },
+      { "pattern": "~/jan/threads", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "volatility": "stable",
+    "storage_epochs": [
+      { "label": "legacy home root (~/jan)", "note": "early Jan releases kept the data folder directly at ~/jan before the configurable data-folder reorg" },
+      { "label": "app data directory", "note": "current releases store threads under the platform app-data dir (…/Jan/data/threads), configurable in settings" }
+    ],
+    "why": "Jan stores each conversation thread (messages.jsonl) under its data folder; older installs used ~/jan directly.",
+    "guidance": [
+      "Prune old threads from the Jan data folder to reduce local retention."
+    ],
+    "confidence": "likely",
+    "references": ["https://www.jan.ai/docs/desktop/data-folder"]
+  },
+  {
+    "schema_version": 1,
+    "id": "anythingllm-db",
+    "tool": "AnythingLLM",
+    "vendor": "Mintplex Labs",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/anythingllm-desktop/storage/anythingllm.db", "match": "file" },
+      { "os": "linux", "pattern": "~/.config/anythingllm-desktop/storage/anythingllm.db", "match": "file" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/anythingllm-desktop/storage/anythingllm.db", "match": "file" }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret", "pii", "source"],
+    "why": "AnythingLLM keeps workspace chats and configuration in a local SQLite database (anythingllm.db).",
+    "guidance": [
+      "Keep the anythingllm-desktop storage folder off cloud sync; it also holds embeddings and imported documents."
+    ],
+    "confidence": "likely",
+    "references": ["https://docs.anythingllm.com/installation-desktop/storage"]
+  },
+  {
+    "schema_version": 1,
+    "id": "msty-db",
+    "tool": "Msty",
+    "vendor": "CloudStack",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/Msty/msty.db", "match": "file" },
+      { "os": "linux", "pattern": "~/.config/Msty/msty.db", "match": "file" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/Msty/msty.db", "match": "file" }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "Msty stores all chat history in a local SQLite database (msty.db) in its default workspace.",
+    "guidance": [
+      "If you moved the Msty workspace elsewhere, scan that location with --path <dir>."
+    ],
+    "confidence": "likely",
+    "references": ["https://docs.msty.app/how-to-guides/sync-msty-between-devices"]
+  },
+  {
+    "schema_version": 1,
+    "id": "tabby-events",
+    "tool": "Tabby",
+    "vendor": "TabbyML",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.tabby/events", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "volatility": "rolling",
+    "why": "Tabby writes verbatim completion and chat events (prompts and code context) to dated JSON files under ~/.tabby/events.",
+    "guidance": [
+      "Set TABBY_ROOT to relocate the store, or prune ~/.tabby/events to limit retention."
+    ],
+    "confidence": "likely",
+    "references": ["https://tabby.tabbyml.com/docs/administration/backup/"]
+  },
+  {
+    "schema_version": 1,
+    "id": "tabby-server-db",
+    "tool": "Tabby",
+    "vendor": "TabbyML",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.tabby/ee/db.sqlite", "match": "file" }
+    ],
+    "category": "config_with_secrets",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "base_weight": 75,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret"],
+    "why": "Tabby's server database holds user accounts and auth/registration tokens.",
+    "guidance": [
+      "Restrict permissions on ~/.tabby and keep it off cloud sync."
+    ],
+    "confidence": "likely",
+    "references": ["https://tabby.tabbyml.com/docs/administration/backup/"]
+  },
+  {
+    "schema_version": 1,
+    "id": "open-webui-db",
+    "tool": "Open WebUI",
+    "vendor": "Open WebUI",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.open-webui/webui.db", "match": "file" },
+      { "pattern": "~/.local/share/open-webui/data/webui.db", "match": "file" }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret", "pii", "source"],
+    "why": "Open WebUI keeps chats and configuration in webui.db; a home-anchored copy exists only when DATA_DIR points at the user's home.",
+    "guidance": [
+      "If Open WebUI runs from a custom DATA_DIR or a container volume, scan that location with --path <dir>."
+    ],
+    "confidence": "unverified",
+    "references": ["https://github.com/open-webui/open-webui/blob/main/backend/open_webui/env.py"]
+  },
+  {
+    "schema_version": 1,
+    "id": "textgen-webui-chatlogs",
+    "tool": "Text Generation WebUI",
+    "vendor": "oobabooga",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/text-generation-webui/user_data/logs/chat", "match": "dir" },
+      { "pattern": "~/text-generation-webui/logs/chat", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "storage_epochs": [
+      { "label": "top-level logs (legacy)", "note": "older releases wrote chat logs to logs/chat; current releases use user_data/logs/chat" }
+    ],
+    "why": "text-generation-webui saves chat logs as JSON inside its install directory; the common clone location is ~/text-generation-webui.",
+    "guidance": [
+      "If you cloned text-generation-webui elsewhere, scan that directory with --path <dir>."
+    ],
+    "confidence": "unverified",
+    "references": ["https://github.com/oobabooga/text-generation-webui/discussions/2542"]
+  },
+  {
+    "schema_version": 1,
+    "id": "llamacpp-model-cache",
+    "tool": "llama.cpp",
+    "vendor": "ggml-org",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Caches/llama.cpp", "match": "dir" },
+      { "os": "linux", "pattern": "~/.cache/llama.cpp", "match": "dir" },
+      { "os": "windows", "pattern": "~/AppData/Local/llama.cpp", "match": "dir" }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "low",
+    "base_weight": 15,
+    "max_evidence_class": "presence",
+    "why": "llama.cpp caches downloaded model weights (GGUF) here; it holds model data, not conversation content, and is a large_growth signal.",
+    "guidance": [
+      "Remove unused GGUF files to reclaim disk space; recent builds may instead use ~/.cache/huggingface/hub."
+    ],
+    "confidence": "likely",
+    "references": ["https://huggingface.co/blog/ggml-org/model-management-in-llamacpp"]
+  },
+  {
+    "schema_version": 1,
+    "id": "vllm-cache",
+    "tool": "vLLM",
+    "vendor": "vLLM",
+    "platforms": ["linux", "macos"],
+    "paths": [
+      { "pattern": "~/.cache/vllm", "match": "dir" }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "low",
+    "base_weight": 15,
+    "max_evidence_class": "presence",
+    "why": "vLLM stores compilation artifacts and derived model data here; it holds no conversation content (requests are served in memory).",
+    "guidance": [
+      "Clearing this cache does not affect stored models; downloaded weights live under ~/.cache/huggingface/hub."
+    ],
+    "confidence": "likely",
+    "references": ["https://docs.vllm.ai/en/stable/configuration/env_vars/"]
+  },
+  {
+    "schema_version": 1,
+    "id": "localai-models",
+    "tool": "LocalAI",
+    "vendor": "LocalAI",
+    "platforms": ["macos", "linux"],
+    "paths": [
+      { "pattern": "~/.localai/models", "match": "dir" }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "low",
+    "base_weight": 15,
+    "max_evidence_class": "presence",
+    "why": "The LocalAI launcher stores downloaded models here; it holds model data, not conversation content (chat history stays in the browser).",
+    "guidance": [
+      "Remove unused models to reclaim disk space; server installs use a --models-path instead."
+    ],
+    "confidence": "unverified",
+    "references": ["https://localai.io/faq/"]
+  }
+]

@@ -1,0 +1,20 @@
+# Commitizen — enforces Conventional Commits structure on every commit in this repo.
+# Messages are validated by the pre-commit `commit-msg` hook (.pre-commit-config.yaml);
+# install it once with `make hooks`. Author interactively with `cz commit` if you want
+# the guided prompts, or just write the message yourself in the format below.
+#
+#   <type>(<scope>)!: <subject>
+#     type:   feat fix docs style refactor perf test build ci chore revert
+#     scope:  optional — e.g. core, cli, ui, definitions, export, release
+#     ! (or a `BREAKING CHANGE:` footer) marks a breaking output-contract / public-API
+#       change (which also bumps SCHEMA_VERSION).
+#   e.g.  feat(core): add evidence_class to Finding
+#         fix(cli): keep --json stdout pure when a probe warns
+#         docs(adr): record ADR-021 in the decision log
+#
+# NOTE: `cz bump` / `cz changelog` are intentionally NOT part of the workflow while the
+# CHANGELOG is paused (see CHANGELOG.md). Commitizen is used here for commit *structure*
+# only — `cz check` (the hook) validates, `cz commit` authors.
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"

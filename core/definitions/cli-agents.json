@@ -1,0 +1,475 @@
+[
+  {
+    "schema_version": 1,
+    "id": "codex-cli-sessions",
+    "tool": "Codex CLI",
+    "vendor": "OpenAI",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.codex/sessions", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "volatility": "stable",
+    "why": "Codex CLI records resumable conversation rollouts as JSONL under ~/.codex/sessions.",
+    "guidance": [
+      "Set CODEX_HOME to relocate the store, or prune ~/.codex/sessions to limit retention."
+    ],
+    "confidence": "likely",
+    "references": ["https://github.com/openai/codex"]
+  },
+  {
+    "schema_version": 1,
+    "id": "codex-cli-auth",
+    "tool": "Codex CLI",
+    "vendor": "OpenAI",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.codex/auth.json", "match": "file" }
+    ],
+    "category": "config_with_secrets",
+    "format": "json",
+    "sensitivity": "high",
+    "base_weight": 75,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret"],
+    "why": "Codex CLI can store an OpenAI API key or ChatGPT OAuth tokens in ~/.codex/auth.json (unless using the OS keyring).",
+    "guidance": [
+      "Ensure ~/.codex/auth.json is not world-readable and not cloud-synced."
+    ],
+    "confidence": "likely",
+    "references": ["https://github.com/openai/codex"]
+  },
+  {
+    "schema_version": 1,
+    "id": "gemini-cli-tmp",
+    "tool": "Gemini CLI",
+    "vendor": "Google",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.gemini/tmp", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "Gemini CLI keeps per-project chat history and tool I/O under ~/.gemini/tmp, keyed by a hash of the project path.",
+    "guidance": [
+      "Prune ~/.gemini/tmp to reduce local conversation retention."
+    ],
+    "confidence": "likely",
+    "references": ["https://github.com/google-gemini/gemini-cli/blob/main/docs/cli/session-management.md"]
+  },
+  {
+    "schema_version": 1,
+    "id": "gemini-cli-oauth",
+    "tool": "Gemini CLI",
+    "vendor": "Google",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.gemini/oauth_creds.json", "match": "file" }
+    ],
+    "category": "config_with_secrets",
+    "format": "json",
+    "sensitivity": "high",
+    "base_weight": 75,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret"],
+    "why": "Gemini CLI stores Google OAuth tokens in ~/.gemini/oauth_creds.json.",
+    "guidance": [
+      "Keep ~/.gemini off cloud sync and restrict its permissions."
+    ],
+    "confidence": "likely",
+    "references": ["https://github.com/google-gemini/gemini-cli/issues/6170"]
+  },
+  {
+    "schema_version": 1,
+    "id": "grok-cli-db",
+    "tool": "Grok CLI",
+    "vendor": "Superagent",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.grok/grok.db", "match": "file" }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "The grok-cli agent stores conversation history and tool executions in ~/.grok/grok.db (the ~/.grok directory is shared with other Grok tools).",
+    "guidance": [
+      "Prune ~/.grok/grok.db or remove it to clear local history."
+    ],
+    "confidence": "likely",
+    "references": ["https://github.com/superagent-ai/grok-cli/blob/main/src/storage/db.ts"]
+  },
+  {
+    "schema_version": 1,
+    "id": "cursor-agent-chats",
+    "tool": "Cursor CLI",
+    "vendor": "Anysphere",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.cursor/chats", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "The Cursor CLI agent (cursor-agent) stores chats in per-conversation SQLite stores under ~/.cursor/chats, separate from the Cursor IDE.",
+    "guidance": [
+      "Set CURSOR_CONFIG_DIR to relocate the store, or prune ~/.cursor/chats."
+    ],
+    "confidence": "likely",
+    "references": ["https://cursor.com/docs/cli/reference/configuration"]
+  },
+  {
+    "schema_version": 1,
+    "id": "antigravity-state",
+    "tool": "Antigravity",
+    "vendor": "Google",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/Antigravity/User/globalStorage/state.vscdb", "match": "file" },
+      { "os": "macos", "pattern": "~/Library/Application Support/Antigravity/User/workspaceStorage/**/state.vscdb", "match": "file" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/Antigravity/User/globalStorage/state.vscdb", "match": "file" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/Antigravity/User/workspaceStorage/**/state.vscdb", "match": "file" },
+      { "os": "linux", "pattern": "~/.config/Antigravity/User/globalStorage/state.vscdb", "match": "file" },
+      { "os": "linux", "pattern": "~/.config/Antigravity/User/workspaceStorage/**/state.vscdb", "match": "file" }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "Antigravity (a VS Code fork) stores agent chat state in a local SQLite database following the VS Code global/workspace-storage layout.",
+    "guidance": [
+      "Keep the Antigravity application-support directory out of cloud-synced locations."
+    ],
+    "confidence": "unverified",
+    "references": ["https://antigravity.google/docs/ide/getting-started"]
+  },
+  {
+    "schema_version": 1,
+    "id": "opencode-db",
+    "tool": "OpenCode",
+    "vendor": "SST",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.local/share/opencode/opencode.db", "match": "file" }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "volatility": "stable",
+    "storage_epochs": [
+      { "label": "per-file JSON (legacy)", "note": "older OpenCode kept sessions as JSON under ~/.local/share/opencode/storage before migrating to a single SQLite database" }
+    ],
+    "why": "OpenCode stores sessions, messages, and parts in ~/.local/share/opencode/opencode.db.",
+    "guidance": [
+      "Set OPENCODE_DATA_DIR to relocate the store, or prune old sessions."
+    ],
+    "confidence": "likely",
+    "references": ["https://deepwiki.com/sst/opencode/2.9-storage-and-database"]
+  },
+  {
+    "schema_version": 1,
+    "id": "opencode-auth",
+    "tool": "OpenCode",
+    "vendor": "SST",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.local/share/opencode/auth.json", "match": "file" }
+    ],
+    "category": "config_with_secrets",
+    "format": "json",
+    "sensitivity": "high",
+    "base_weight": 75,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret"],
+    "why": "OpenCode stores provider API keys and OAuth tokens in ~/.local/share/opencode/auth.json.",
+    "guidance": [
+      "Restrict permissions on the opencode data directory and keep it off cloud sync."
+    ],
+    "confidence": "likely",
+    "references": ["https://opencode.ai/docs/troubleshooting/"]
+  },
+  {
+    "schema_version": 1,
+    "id": "goose-sessions",
+    "tool": "Goose",
+    "vendor": "Block",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.config/goose/sessions", "match": "dir" },
+      { "pattern": "~/.local/share/goose/sessions", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "Goose records agent sessions as JSONL under its config directory (secrets default to the OS keyring, not a file).",
+    "guidance": [
+      "Prune ~/.config/goose/sessions to limit local retention."
+    ],
+    "confidence": "likely",
+    "references": ["https://goose-docs.ai/docs/guides/config-files/"]
+  },
+  {
+    "schema_version": 1,
+    "id": "amazon-q-cli-data",
+    "tool": "Amazon Q Developer CLI",
+    "vendor": "AWS",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/amazon-q/data.sqlite3", "match": "file" },
+      { "os": "linux", "pattern": "~/.local/share/amazon-q/data.sqlite3", "match": "file" },
+      { "os": "windows", "pattern": "~/AppData/Local/amazon-q/data.sqlite3", "match": "file" }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "base_weight": 82,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret", "pii", "source"],
+    "why": "The Amazon Q CLI keeps conversations plus SSO/Builder-ID auth and credential state together in a single local SQLite file (data.sqlite3).",
+    "guidance": [
+      "Keep the amazon-q data directory off cloud sync; the database holds both chats and credentials."
+    ],
+    "confidence": "likely",
+    "references": ["https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/command-line-chat-persistence.html"]
+  },
+  {
+    "schema_version": 1,
+    "id": "pi-agent-sessions",
+    "tool": "Pi",
+    "vendor": "earendil-works",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.pi/agent/sessions", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "The Pi coding agent auto-saves tree-structured JSONL sessions under ~/.pi/agent/sessions (this is the CLI agent, not the Inflection chatbot).",
+    "guidance": [
+      "Set PI_CODING_AGENT_DIR to relocate the store, or prune ~/.pi/agent/sessions."
+    ],
+    "confidence": "likely",
+    "references": ["https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/README.md"]
+  },
+  {
+    "schema_version": 1,
+    "id": "pi-agent-auth",
+    "tool": "Pi",
+    "vendor": "earendil-works",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.pi/agent/auth.json", "match": "file" }
+    ],
+    "category": "config_with_secrets",
+    "format": "json",
+    "sensitivity": "high",
+    "base_weight": 75,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret"],
+    "why": "Pi stores OAuth access/refresh tokens and any saved API keys in ~/.pi/agent/auth.json.",
+    "guidance": [
+      "Restrict permissions on ~/.pi and keep it off cloud sync."
+    ],
+    "confidence": "unverified",
+    "references": ["https://github.com/badlogic/pi-mono"]
+  },
+  {
+    "schema_version": 1,
+    "id": "llm-datasette-logs",
+    "tool": "llm (Datasette)",
+    "vendor": "Datasette",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/io.datasette.llm/logs.db", "match": "file" },
+      { "os": "linux", "pattern": "~/.config/io.datasette.llm/logs.db", "match": "file" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/io.datasette.llm/logs.db", "match": "file" }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "Simon Willison's llm logs every prompt and response verbatim to a local SQLite database (logs.db) by default.",
+    "guidance": [
+      "Disable logging (llm logs off) or prune logs.db; run `llm logs path` to locate it."
+    ],
+    "confidence": "likely",
+    "references": ["https://llm.datasette.io/en/stable/logging.html"]
+  },
+  {
+    "schema_version": 1,
+    "id": "llm-datasette-keys",
+    "tool": "llm (Datasette)",
+    "vendor": "Datasette",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/io.datasette.llm/keys.json", "match": "file" },
+      { "os": "linux", "pattern": "~/.config/io.datasette.llm/keys.json", "match": "file" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/io.datasette.llm/keys.json", "match": "file" }
+    ],
+    "category": "config_with_secrets",
+    "format": "json",
+    "sensitivity": "high",
+    "base_weight": 75,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret"],
+    "why": "llm stores provider API keys in keys.json alongside its logs database.",
+    "guidance": [
+      "Keep keys.json off cloud sync; run `llm keys path` to locate it."
+    ],
+    "confidence": "likely",
+    "references": ["https://llm.datasette.io/en/stable/setup.html"]
+  },
+  {
+    "schema_version": 1,
+    "id": "shell-gpt-config",
+    "tool": "Shell-GPT",
+    "vendor": "TheR1D",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.config/shell_gpt/.sgptrc", "match": "file" }
+    ],
+    "category": "config_with_secrets",
+    "format": "plaintext",
+    "sensitivity": "high",
+    "base_weight": 75,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret"],
+    "why": "Shell-GPT keeps its OpenAI API key and settings in ~/.config/shell_gpt/.sgptrc (chat history caches to a temp dir, not $HOME).",
+    "guidance": [
+      "Restrict permissions on ~/.config/shell_gpt/.sgptrc and keep it off cloud sync."
+    ],
+    "confidence": "likely",
+    "references": ["https://github.com/TheR1D/shell_gpt"]
+  },
+  {
+    "schema_version": 1,
+    "id": "open-interpreter-conversations",
+    "tool": "Open Interpreter",
+    "vendor": "Open Interpreter",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/open-interpreter/conversations", "match": "dir" },
+      { "os": "linux", "pattern": "~/.config/open-interpreter/conversations", "match": "dir" },
+      { "os": "windows", "pattern": "~/AppData/Local/open-interpreter/conversations", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "Open Interpreter saves verbatim conversation messages as JSON under its config directory's conversations folder.",
+    "guidance": [
+      "Prune the open-interpreter conversations directory to limit retention."
+    ],
+    "confidence": "likely",
+    "references": ["https://github.com/OpenInterpreter/open-interpreter/blob/v0.4.2/interpreter/terminal_interface/utils/oi_dir.py"]
+  },
+  {
+    "schema_version": 1,
+    "id": "warp-sqlite",
+    "tool": "Warp",
+    "vendor": "Warp",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Group Containers/2BBY89MBSN.dev.warp/Library/Application Support/dev.warp.Warp-Stable/warp.sqlite", "match": "file" },
+      { "os": "macos", "pattern": "~/Library/Application Support/dev.warp.Warp-Stable/warp.sqlite", "match": "file" },
+      { "os": "linux", "pattern": "~/.local/state/warp-terminal/warp.sqlite", "match": "file" },
+      { "os": "windows", "pattern": "~/AppData/Local/warp/Warp/data/warp.sqlite", "match": "file" }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "volatility": "rolling",
+    "why": "Warp stores command history, AI prompts/responses, and agent chats in a local SQLite database (warp.sqlite); when signed in, this data also syncs to Warp's cloud.",
+    "guidance": [
+      "Signing out stops cloud sync; prune warp.sqlite history from Warp's settings."
+    ],
+    "confidence": "likely",
+    "references": ["https://docs.warp.dev/terminal/settings/file-locations/"]
+  },
+  {
+    "schema_version": 1,
+    "id": "aichat-sessions",
+    "tool": "aichat",
+    "vendor": "sigoden",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/aichat/sessions", "match": "dir" },
+      { "os": "linux", "pattern": "~/.config/aichat/sessions", "match": "dir" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/aichat/sessions", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "aichat saves named sessions as YAML under its config directory (and appends saved chats to messages.md).",
+    "guidance": [
+      "Prune the aichat sessions directory and messages.md to limit retention."
+    ],
+    "confidence": "likely",
+    "references": ["https://github.com/sigoden/aichat/wiki/Configuration-Guide"]
+  },
+  {
+    "schema_version": 1,
+    "id": "aichat-config",
+    "tool": "aichat",
+    "vendor": "sigoden",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/aichat/config.yaml", "match": "file" },
+      { "os": "linux", "pattern": "~/.config/aichat/config.yaml", "match": "file" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/aichat/config.yaml", "match": "file" }
+    ],
+    "category": "config_with_secrets",
+    "format": "plaintext",
+    "sensitivity": "high",
+    "base_weight": 75,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret"],
+    "why": "aichat stores provider API keys in its config.yaml.",
+    "guidance": [
+      "Restrict permissions on the aichat config directory and keep it off cloud sync."
+    ],
+    "confidence": "likely",
+    "references": ["https://github.com/sigoden/aichat/wiki/Configuration-Guide"]
+  }
+]

@@ -1,0 +1,219 @@
+[
+  {
+    "schema_version": 1,
+    "id": "cline-tasks",
+    "tool": "Cline",
+    "vendor": "Cline",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/tasks", "match": "dir" },
+      { "os": "macos", "pattern": "~/Library/Application Support/Cursor/User/globalStorage/saoudrizwan.claude-dev/tasks", "match": "dir" },
+      { "os": "linux", "pattern": "~/.config/Code/User/globalStorage/saoudrizwan.claude-dev/tasks", "match": "dir" },
+      { "os": "linux", "pattern": "~/.config/Cursor/User/globalStorage/saoudrizwan.claude-dev/tasks", "match": "dir" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/Code/User/globalStorage/saoudrizwan.claude-dev/tasks", "match": "dir" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/Cursor/User/globalStorage/saoudrizwan.claude-dev/tasks", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "Cline (a VS Code agent) stores full verbatim task history as JSON under its globalStorage tasks directory.",
+    "guidance": [
+      "Delete old tasks from Cline's history; if you set a custom storage path, or use another VS Code fork, scan it with --path."
+    ],
+    "confidence": "likely",
+    "references": ["https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev"]
+  },
+  {
+    "schema_version": 1,
+    "id": "roo-code-tasks",
+    "tool": "Roo Code",
+    "vendor": "Roo Code",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/Code/User/globalStorage/rooveterinaryinc.roo-cline/tasks", "match": "dir" },
+      { "os": "macos", "pattern": "~/Library/Application Support/Cursor/User/globalStorage/rooveterinaryinc.roo-cline/tasks", "match": "dir" },
+      { "os": "linux", "pattern": "~/.config/Code/User/globalStorage/rooveterinaryinc.roo-cline/tasks", "match": "dir" },
+      { "os": "linux", "pattern": "~/.config/Cursor/User/globalStorage/rooveterinaryinc.roo-cline/tasks", "match": "dir" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/Code/User/globalStorage/rooveterinaryinc.roo-cline/tasks", "match": "dir" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/Cursor/User/globalStorage/rooveterinaryinc.roo-cline/tasks", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "Roo Code (a Cline fork) stores verbatim agent task history as JSON under its globalStorage tasks directory.",
+    "guidance": [
+      "Delete old tasks from Roo Code's history; if you set a custom storage path, or use another VS Code fork, scan it with --path."
+    ],
+    "confidence": "likely",
+    "references": ["https://marketplace.visualstudio.com/items?itemName=RooVeterinaryInc.roo-cline"]
+  },
+  {
+    "schema_version": 1,
+    "id": "cody-search-index",
+    "tool": "Cody",
+    "vendor": "Sourcegraph",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/Code/User/globalStorage/sourcegraph.cody-ai", "match": "dir" },
+      { "os": "macos", "pattern": "~/Library/Application Support/Cursor/User/globalStorage/sourcegraph.cody-ai", "match": "dir" },
+      { "os": "linux", "pattern": "~/.config/Code/User/globalStorage/sourcegraph.cody-ai", "match": "dir" },
+      { "os": "linux", "pattern": "~/.config/Cursor/User/globalStorage/sourcegraph.cody-ai", "match": "dir" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/Code/User/globalStorage/sourcegraph.cody-ai", "match": "dir" },
+      { "os": "windows", "pattern": "~/AppData/Roaming/Cursor/User/globalStorage/sourcegraph.cody-ai", "match": "dir" }
+    ],
+    "category": "embedding_index",
+    "format": "dir",
+    "sensitivity": "medium",
+    "base_weight": 50,
+    "max_evidence_class": "usage",
+    "sensitivity_types": ["source"],
+    "why": "Cody (Sourcegraph) stores its symf local code-search index (derived from your source) under this globalStorage directory; chat history persists in the shared VS Code state store, covered separately.",
+    "guidance": [
+      "This is a derived source index; Cody chat lives in the VS Code global state store. Scan other VS Code forks with --path."
+    ],
+    "confidence": "likely",
+    "references": ["https://sourcegraph.com/docs/cody"]
+  },
+  {
+    "schema_version": 1,
+    "id": "amazon-q-ide-history",
+    "tool": "Amazon Q (VS Code)",
+    "vendor": "AWS",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.aws/amazonq/history", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "The Amazon Q IDE extension may keep chat/prompt history as JSON under ~/.aws/amazonq/history.",
+    "guidance": [
+      "Prune ~/.aws/amazonq/history; SSO tokens live under ~/.aws/sso/cache."
+    ],
+    "confidence": "unverified",
+    "references": ["https://docs.aws.amazon.com/amazonq/latest/qdeveloper-ug/ide-chat-conversation.html"]
+  },
+  {
+    "schema_version": 1,
+    "id": "codeium-index",
+    "tool": "Codeium",
+    "vendor": "Codeium",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.codeium", "match": "dir" }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "medium",
+    "base_weight": 50,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret", "source"],
+    "why": "Codeium keeps a local codebase embedding index under ~/.codeium/database, plus a config file that can hold an API token (its chat history is largely server-side).",
+    "guidance": [
+      "Restrict permissions on ~/.codeium; the embedding index is derived from your source."
+    ],
+    "confidence": "likely",
+    "references": ["https://marketplace.visualstudio.com/items?itemName=Codeium.codeium"]
+  },
+  {
+    "schema_version": 1,
+    "id": "tabnine-cache",
+    "tool": "Tabnine",
+    "vendor": "Tabnine",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/TabNine", "match": "dir" },
+      { "os": "linux", "pattern": "~/.local/share/TabNine", "match": "dir" },
+      { "os": "windows", "pattern": "~/AppData/Local/TabNine", "match": "dir" }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "medium",
+    "base_weight": 50,
+    "max_evidence_class": "usage",
+    "sensitivity_types": ["source"],
+    "why": "Tabnine stores local completion models and a personalization index derived from your code; verbatim chat is not persisted here.",
+    "guidance": [
+      "Clearing this directory removes local models and the personalization index."
+    ],
+    "confidence": "likely",
+    "references": ["https://marketplace.visualstudio.com/items?itemName=TabNine.tabnine-vscode"]
+  },
+  {
+    "schema_version": 1,
+    "id": "supermaven-store",
+    "tool": "Supermaven",
+    "vendor": "Supermaven",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.supermaven", "match": "dir" }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "low",
+    "base_weight": 15,
+    "max_evidence_class": "presence",
+    "why": "Supermaven stores its completion-agent binary and config under ~/.supermaven; no verbatim conversation is confirmed on disk.",
+    "guidance": [
+      "This directory holds the completion engine, not chat transcripts."
+    ],
+    "confidence": "unverified",
+    "references": ["https://marketplace.visualstudio.com/items?itemName=supermaven.supermaven"]
+  },
+  {
+    "schema_version": 1,
+    "id": "zed-agent-threads",
+    "tool": "Zed",
+    "vendor": "Zed Industries",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "os": "macos", "pattern": "~/Library/Application Support/Zed/threads/threads.db", "match": "file" },
+      { "os": "linux", "pattern": "~/.local/share/zed/threads/threads.db", "match": "file" },
+      { "os": "windows", "pattern": "~/AppData/Local/Zed/threads/threads.db", "match": "file" }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "Zed's Agent Panel stores verbatim conversation threads in a local SQLite database (threads/threads.db).",
+    "guidance": [
+      "Delete threads from Zed's agent history to reduce local retention."
+    ],
+    "confidence": "likely",
+    "references": ["https://github.com/zed-industries/zed/blob/main/crates/agent/src/db.rs"]
+  },
+  {
+    "schema_version": 1,
+    "id": "junie-sessions",
+    "tool": "Junie",
+    "vendor": "JetBrains",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      { "pattern": "~/.junie/sessions", "match": "dir" }
+    ],
+    "category": "transcript",
+    "format": "dir",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["pii", "source"],
+    "why": "Junie (JetBrains' coding agent) records each session's prompts and responses under ~/.junie/sessions.",
+    "guidance": [
+      "Prune ~/.junie/sessions to limit retention; the JetBrains AI Assistant chat instead embeds in per-project IDE workspace files."
+    ],
+    "confidence": "unverified",
+    "references": ["https://junie.jetbrains.com/docs/junie-cli-configuration.html"]
+  }
+]

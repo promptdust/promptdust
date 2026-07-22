@@ -1,0 +1,30 @@
+[package]
+name = "promptdust-cli"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Command-line front-end for the promptdust read-only footprint engine"
+
+[lints]
+workspace = true
+
+[[bin]]
+name = "promptdust"
+path = "src/main.rs"
+
+[dependencies]
+promptdust-core = { workspace = true }
+promptdust-telemetry = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+clap = { version = "4", features = ["derive"] }
+time = { version = "0.3", features = ["formatting"] }
+human-panic = "2"
+
+[dev-dependencies]
+assert_cmd = "2"
+predicates = "3"
+tempfile = "3"
+serde_json = { workspace = true }

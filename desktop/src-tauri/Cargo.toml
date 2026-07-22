@@ -1,0 +1,59 @@
+[package]
+name = "promptdust-desktop"
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.78"
+license = "Apache-2.0"
+repository = "https://github.com/promptdust/promptdust"
+authors = ["promptdust contributors"]
+description = "promptdust desktop app — read-only AI-data footprint scanner"
+
+[lib]
+name = "promptdust_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+promptdust-core = { path = "../../core" }
+promptdust-telemetry = { path = "../../telemetry" }
+tauri = { version = "2", features = [] }
+# Opt-in, signed self-update (Q-03) — only checks when the user asks; update
+# payloads are verified against the pubkey in tauri.conf.json before install.
+tauri-plugin-updater = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+time = { version = "0.3", features = ["formatting"] }
+dirs = "6"
+human-panic = "2"
+
+# macOS-only: the native Share sheet (NSSharingServicePicker, #94). Versions match the objc2
+# stack Tauri (wry/tao) already link, so these add no new packages to Cargo.lock — only new
+# dependency edges to crates already in the graph (holds as long as wry/tao keep linking the
+# superset). `default-features = false` + this narrow feature set is hygiene: it avoids
+# activating objc2-app-kit's full default feature set on our own account.
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6"
+objc2-foundation = { version = "0.3", default-features = false, features = [
+    "std",
+    "NSArray",
+    "NSString",
+    "NSGeometry",
+] }
+objc2-app-kit = { version = "0.3", default-features = false, features = [
+    "std",
+    "objc2-core-foundation",
+    "NSResponder",
+    "NSView",
+    "NSWindow",
+    "NSSharingService",
+] }
+
+[dev-dependencies]
+tempfile = "3"
+
+# `debug = false` (the default) keeps compiled-in source paths out of the crash-report
+# backtrace (human-panic, #77). See the root Cargo.toml note.
+[profile.release]
+debug = false

@@ -1,0 +1,35 @@
+[workspace]
+resolver = "2"
+members = ["core", "cli", "telemetry"]
+# The desktop app is built separately (it pulls the heavy Tauri/webview toolchain and
+# platform webkit deps). Keeping it out of the default workspace keeps `cargo
+# build/test --workspace` fast and cross-platform for the engine and CLI.
+exclude = ["desktop/src-tauri"]
+
+[workspace.package]
+version = "0.2.0"
+edition = "2021"
+rust-version = "1.78"
+license = "Apache-2.0"
+repository = "https://github.com/promptdust/promptdust"
+authors = ["promptdust contributors"]
+description = "Read-only local AI-data footprint scanner"
+
+[workspace.dependencies]
+promptdust-core = { path = "core" }
+promptdust-telemetry = { path = "telemetry" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# `debug = false` (the default) keeps compiled-in source paths out of the crash-report
+# backtrace (human-panic, #77) — load-bearing for that privacy claim, so it is pinned here.
+# Don't set `debug = true` without also sanitizing crash-report paths (`--remap-path-prefix`).
+[profile.release]
+debug = false
+
+# Lints applied workspace-wide. Kept strict so CI `-D warnings` is meaningful.
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }

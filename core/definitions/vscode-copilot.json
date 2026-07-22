@@ -1,0 +1,74 @@
+[
+  {
+    "schema_version": 1,
+    "id": "vscode-workspace-state",
+    "tool": "VS Code (Copilot Chat)",
+    "vendor": "Microsoft",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/Code/User/workspaceStorage/**/state.vscdb",
+        "match": "file"
+      },
+      {
+        "os": "linux",
+        "pattern": "~/.config/Code/User/workspaceStorage/**/state.vscdb",
+        "match": "file"
+      },
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Roaming/Code/User/workspaceStorage/**/state.vscdb",
+        "match": "file"
+      }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret", "pii", "source"],
+    "why": "GitHub Copilot Chat history persists locally in per-workspace SQLite state stores.",
+    "guidance": [
+      "Clear chat sessions from within VS Code to reduce local retention.",
+      "Keep the Code application-support folder out of cloud-synced locations."
+    ],
+    "confidence": "verified",
+    "references": ["https://github.com/orgs/community/discussions/69740"]
+  },
+  {
+    "schema_version": 1,
+    "id": "vscode-global-storage",
+    "tool": "VS Code (Copilot Chat)",
+    "vendor": "Microsoft",
+    "platforms": ["macos", "linux", "windows"],
+    "paths": [
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/Code/User/globalStorage/state.vscdb",
+        "match": "file"
+      },
+      {
+        "os": "linux",
+        "pattern": "~/.config/Code/User/globalStorage/state.vscdb",
+        "match": "file"
+      },
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Roaming/Code/User/globalStorage/state.vscdb",
+        "match": "file"
+      }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret", "pii", "source"],
+    "why": "VS Code global state, which can include Copilot chat and other AI extension data.",
+    "guidance": ["Keep the Code application-support folder out of cloud-synced locations."],
+    "confidence": "likely"
+  }
+]

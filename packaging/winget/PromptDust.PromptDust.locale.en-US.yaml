@@ -1,0 +1,31 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+#
+# winget default-locale manifest TEMPLATE.
+PackageIdentifier: PromptDust.PromptDust
+PackageVersion: 0.2.0
+PackageLocale: en-US
+Publisher: Team8 Solutions LLC
+PublisherUrl: https://promptdust.com/
+PublisherSupportUrl: https://github.com/promptdust/promptdust/issues
+PackageName: PromptDust
+PackageUrl: https://promptdust.com/
+License: Apache-2.0
+LicenseUrl: https://github.com/promptdust/promptdust/blob/main/LICENSE
+Copyright: Copyright (c) Team8 Solutions LLC
+ShortDescription: Read-only map of where AI tools leave data on your machine.
+Description: >-
+  PromptDust maps where AI tools (Claude Code, Cursor, ChatGPT/Claude desktop, Copilot,
+  Ollama, and more) store conversations, caches, and credentials on the local machine,
+  and reports what amplifies that exposure — cloud sync, backups, git repos,
+  world-readable permissions, unencrypted disk. It is a read-only, local-only footprint
+  mapper: it reports metadata (existence, size, timestamps, counts), never conversation
+  content, and never a "safe/unsafe" verdict. Not a scanner, cleaner, or DLP.
+Moniker: promptdust
+Tags:
+  - ai
+  - privacy
+  - exposure
+  - inventory
+  - footprint
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

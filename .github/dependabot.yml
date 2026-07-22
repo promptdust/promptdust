@@ -1,0 +1,40 @@
+version: 2
+
+# Every ecosystem updates weekly, and all of an ecosystem's updates are bundled into
+# a single grouped PR (patterns: "*") instead of one PR per dependency, to keep review
+# noise low. Minor/patch and major bumps are grouped together into that one PR.
+#
+# Note: the npm entry for the dependency-free desktop UI (desktop/ui) was removed —
+# there is no package.json there for Dependabot to manage (Q-15).
+updates:
+  # Workspace crates (core + cli).
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      cargo:
+        patterns:
+          - "*"
+
+  # Tauri desktop crate (its own manifest/lockfile; excluded from the cargo workspace).
+  - package-ecosystem: cargo
+    directory: "/desktop/src-tauri"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      desktop-cargo:
+        patterns:
+          - "*"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"

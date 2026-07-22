@@ -1,0 +1,148 @@
+name: ci
+
+# Minutes-frugal CI (the org runs on a limited Actions budget):
+#  - push + pull_request are both scoped to `main`, so a PR branch no longer triggers
+#    two runs (one for the branch push, one for the PR) — one run per PR.
+#  - Cheap Linux jobs (fmt/clippy, tests, guards) run on every push and PR.
+#  - Expensive legs — macOS (10x minute multiplier) and Windows (2x): the cross-OS
+#    test matrix, the macOS desktop build, and the heavy coverage job — run on PRs
+#    and manual dispatch, but NOT on direct pushes to main. A PR gets full
+#    cross-platform validation before merge; direct-to-main pushes stay on cheap
+#    Linux. Trigger a full run on demand from the Actions tab (Run workflow), and
+#    releases still build all three OSes via release.yml on the version tag.
+#  - Docs-only changes skip CI entirely (paths-ignore).
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**.md", "docs/**", "LICENSE"]
+  pull_request:
+    branches: [main]
+    paths-ignore: ["**.md", "docs/**", "LICENSE"]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: fmt + clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --all-targets --all-features -- -D warnings
+
+  test-linux:
+    name: test (ubuntu-latest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace --all-features
+
+  audit:
+    name: cargo-deny (licenses + advisories)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: EmbarkStudios/cargo-deny-action@v2
+
+  checks:
+    name: definitions + invariant guards
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Validate definitions (schema + dup-id + fields)
+        run: python3 .github/scripts/validate_signatures.py
+      - name: No-network invariant, static (INV-2)
+        run: bash .github/scripts/check_no_network.sh
+      - name: No-telemetry invariant, static (INV-5)
+        run: bash .github/scripts/check_no_telemetry.sh
+      - name: Verdict-language lint (FR-5)
+        run: bash .github/scripts/verdict_lint.sh
+      - name: GUI read-only audit
+        run: bash .github/scripts/check_gui_readonly.sh
+
+  no-network-runtime:
+    name: no-network runtime proof (INV-2)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build -p promptdust-cli
+      - name: Scan inside a network-denied namespace
+        # The static guard proves no networking crate is *linked* into the core; this
+        # proves the scan actually *completes with no network available*. GitHub
+        # runners forbid the unprivileged uid_map write that `unshare -rn` needs
+        # ("Operation not permitted"), but they provide passwordless sudo, so create
+        # the connectivity-less network namespace as root instead. If the scan needed
+        # the network it would fail here. A stronger syscall-level assertion (strace
+        # for connect() to non-local addresses) is a possible future tightening.
+        run: |
+          set -euo pipefail
+          sudo unshare -n -- ./target/debug/promptdust scan --no-slow
+          echo "OK: scan completed with no network namespace connectivity."
+      - name: Scan with telemetry enabled makes no network call
+        run: |
+          set -euo pipefail
+          CFG="$(mktemp -d)"
+          printf '{"state":"enabled","notified":true}' > "$CFG/consent.json"
+          sudo unshare -n -- env PROMPTDUST_CONFIG_DIR="$CFG" ./target/debug/promptdust scan --no-slow
+          echo "OK: scan completed with telemetry enabled and no network."
+
+  # ---- Expensive legs: PRs + manual dispatch only (skip on direct main pushes) ----
+
+  test-cross:
+    name: test (${{ matrix.os }})
+    if: github.event_name != 'push'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --workspace --all-features
+
+  coverage:
+    name: coverage (informational)
+    if: github.event_name != 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: llvm-tools-preview
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-llvm-cov
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo llvm-cov --workspace --summary-only
+
+  desktop:
+    name: desktop (macOS build + UI tests)
+    if: github.event_name != 'push'
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: UI renderer tests
+        run: node --test
+        working-directory: desktop/ui
+      - name: Build desktop crate
+        run: cargo build --manifest-path desktop/src-tauri/Cargo.toml
+      - name: Desktop unit tests
+        run: cargo test --manifest-path desktop/src-tauri/Cargo.toml

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PromptDust</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- Neutral in-app header: app glyph + name left, theme toggle right. The OS draws
+         the window frame; we never fake macOS traffic lights. -->
+    <header class="appbar">
+      <div class="brand">
+        <span class="glyph" aria-hidden="true"><img src="icon.svg" width="22" height="22" alt="" /></span>
+        <span class="wordmark">PromptDust</span>
+      </div>
+      <div class="appbar-actions">
+        <button id="about-btn" class="icon-btn" type="button" aria-label="About and updates" title="About &amp; updates">ⓘ</button>
+        <button id="theme-toggle" class="icon-btn" type="button" aria-label="Toggle light or dark theme" title="Toggle theme">◐</button>
+      </div>
+    </header>
+
+    <main>
+      <!-- 1 · Welcome / consent -->
+      <section id="welcome" class="screen center" aria-labelledby="welcome-h">
+        <span class="hero-mark" aria-hidden="true"><img src="icon.svg" width="92" height="92" alt="" /></span>
+        <h1 id="welcome-h" class="wordmark-lg">PromptDust</h1>
+        <p class="tagline">the dust your prompts leave behind</p>
+        <div class="promises">
+          <span class="promise">Looks, never touches</span>
+          <span class="promise" id="promise-device">Never leaves this computer</span>
+          <span class="promise">Never reads a word</span>
+        </div>
+        <button id="scan-btn" class="primary lg" type="button">Scan this computer</button>
+
+        <!-- Ring-1 consent affordance (ADR-015): the deeper "usage" ring — what's running &
+             recently used — is a separate explicit opt-in. Its collectors are not built yet, so this is
+             a gated stub: the toggle is disabled with an honest "what this reads" preview. -->
+        <div class="ring-opt" id="ring1-opt">
+          <label class="ring-opt-label">
+            <input type="checkbox" id="ring1-check" disabled aria-describedby="ring1-preview" />
+            <span>Also check what’s running &amp; recently used</span>
+            <span class="ring-opt-soon">Coming soon</span>
+          </label>
+          <div id="ring1-preview" class="ring-opt-preview"></div>
+        </div>
+      </section>
+
+      <!-- 2 · Scanning -->
+      <section id="scanning" class="screen center" hidden aria-live="polite">
+        <div class="dust-scan" aria-hidden="true"><span class="sweep"></span></div>
+        <p id="scan-status" class="scan-status">Scanning…</p>
+        <div class="progress" aria-hidden="true"><span class="progress-bar"></span></div>
+      </section>
+
+      <!-- 3 · Summary (after scan, before results) -->
+      <section id="summary" class="screen" hidden>
+        <div id="summary-body"></div>
+        <button id="see-inventory" class="primary lg" type="button">See all</button>
+      </section>
+
+      <!-- 4 · Results (rendered wholesale by render.mjs) -->
+      <section id="results" class="screen" hidden></section>
+
+      <!-- 6 · Empty -->
+      <section id="empty" class="screen center" hidden>
+        <span class="hero-mark faint" aria-hidden="true"><img src="icon.svg" width="72" height="72" alt="" /></span>
+        <h1>No AI data found</h1>
+        <p class="muted">Known tools only.</p>
+        <button class="new-scan primary" type="button">Scan again</button>
+      </section>
+
+      <!-- 7 · Permission / error -->
+      <section id="permission" class="screen center" hidden role="alert">
+        <span class="key-glyph" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="40" height="40" fill="none">
+            <circle cx="8" cy="9" r="4.5" stroke="var(--accent)" stroke-width="2" />
+            <path d="M11 12 L20 21 M17 18 l2 -2 M19 20 l2 -2" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </span>
+        <h1 id="perm-title">Permission needed</h1>
+        <p id="perm-msg" class="muted">Allow file access, then try again.</p>
+        <div class="center-actions">
+          <button id="perm-retry" class="primary" type="button">Try again</button>
+          <button id="perm-welcome" type="button">Back</button>
+        </div>
+      </section>
+    </main>
+
+    <!-- Finding detail — slide-over from the right -->
+    <div id="detail-overlay" class="overlay" hidden>
+      <div class="scrim" data-close="detail"></div>
+      <aside class="slideover" role="dialog" aria-label="Finding detail" aria-modal="true">
+        <button class="close" data-close="detail" type="button" aria-label="Close">×</button>
+        <div id="detail-body"></div>
+      </aside>
+    </div>
+
+    <!-- Export — modal -->
+    <div id="export-overlay" class="overlay" hidden>
+      <div class="scrim" data-close="export"></div>
+      <div class="modal" role="dialog" aria-label="Export report" aria-modal="true">
+        <button class="close" data-close="export" type="button" aria-label="Close">×</button>
+        <p class="eyebrow">Export</p>
+        <h2>Save report</h2>
+        <div class="seg" role="group" aria-label="Report format">
+          <button class="seg-btn active" data-fmt="md" type="button">Markdown</button>
+          <button class="seg-btn" data-fmt="json" type="button">JSON</button>
+        </div>
+        <div class="note warn">Maps where your data lives. Keep it safe.</div>
+        <div class="modal-actions">
+          <button id="export-do" class="primary" type="button">Export</button>
+        </div>
+        <p id="export-result" class="muted" hidden></p>
+      </div>
+    </div>
+
+    <!-- About / updates — modal. The updater is opt-in (Q-03): it only checks when the
+         user clicks below; PromptDust never checks or downloads on its own. -->
+    <div id="about-overlay" class="overlay" hidden>
+      <div class="scrim" data-close="about"></div>
+      <div class="modal" role="dialog" aria-label="About PromptDust" aria-modal="true">
+        <button class="close" data-close="about" type="button" aria-label="Close">×</button>
+        <p class="eyebrow">About</p>
+        <h2>PromptDust</h2>
+        <p class="muted">the dust your prompts leave behind</p>
+        <div class="modal-actions">
+          <button id="check-updates" class="primary" type="button">Check for updates</button>
+        </div>
+        <p id="update-status" class="muted" aria-live="polite" hidden></p>
+      </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>

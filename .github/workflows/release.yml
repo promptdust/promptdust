@@ -1,0 +1,246 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+# contents: write   — create/upload the draft release.
+# id-token: write   — mint the OIDC token the build-provenance attestation is signed with.
+# attestations: write — write SLSA provenance attestations for the artifacts.
+# (Set workspace-wide; the `checksums` job doesn't attest but the two extra scopes are
+# unused there, not a risk — kept top-level for simplicity over per-job blocks.)
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+jobs:
+  # Desktop installers via the official Tauri action. Signing/notarization happen
+  # automatically when the corresponding secrets are present; if they are absent the
+  # action still produces (unsigned) installers, so a release is never blocked on
+  # certificates (decision Q-14).
+  desktop:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: "--target universal-apple-darwin"
+          - platform: ubuntu-22.04
+            args: ""
+          - platform: windows-latest
+            args: ""
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "desktop/src-tauri -> target"
+
+      - name: Install Linux deps
+        if: matrix.platform == 'ubuntu-22.04'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev \
+            librsvg2-dev libxdo-dev build-essential file
+
+      - uses: tauri-apps/tauri-action@v1
+        id: tauri
+        env:
+          # macOS signing is OFF until real Developer ID certs land. Do NOT pass the
+          # APPLE_* env: tauri-action runs its keychain `security import` whenever these
+          # keys are *defined* — even as empty strings from absent secrets — and that
+          # import fails on an empty cert, aborting the whole build. Leaving them
+          # undefined makes the bundler produce an ad-hoc/unsigned .app (matches a local
+          # `cargo tauri build`). To sign later: add the secrets AND
+          # uncomment these six lines.
+          # APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          # APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          # APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          # APPLE_ID: ${{ secrets.APPLE_ID }}
+          # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Updater signing (opt-in, Q-03). Inert until updates are enabled: it only
+          # matters when tauri.conf.json sets bundle.createUpdaterArtifacts=true (it is
+          # false today), at which point the release signs the update feed. Empty ⇒ no
+          # updater artifacts.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+          # tauri-action needs the token to create + upload the draft release.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: desktop
+          args: ${{ matrix.args }}
+          tagName: ${{ github.ref_name }}
+          releaseName: "promptdust ${{ github.ref_name }}"
+          releaseDraft: true
+          prerelease: false
+
+      # tauri-action reports every built installer as a JSON array in `artifactPaths`;
+      # flatten it to a newline list so later steps can checksum + attest each file.
+      - name: List desktop artifacts
+        id: artifacts
+        shell: bash
+        env:
+          ARTIFACT_PATHS: ${{ steps.tauri.outputs.artifactPaths }}
+        run: |
+          {
+            echo 'paths<<__PD_ARTIFACTS_EOF__'
+            printf '%s' "$ARTIFACT_PATHS" | jq -r '.[]'
+            echo '__PD_ARTIFACTS_EOF__'
+          } >> "$GITHUB_OUTPUT"
+
+      # Mirror the CLI sha256 step for every installer (.dmg/.msi/.AppImage/.deb/…).
+      - name: Checksum desktop installers
+        shell: bash
+        env:
+          PATHS: ${{ steps.artifacts.outputs.paths }}
+        run: |
+          while IFS= read -r p; do
+            [ -n "$p" ] || continue
+            p="${p//\\//}"   # normalize Windows backslashes so dirname/basename split on /
+            [ -f "$p" ] || { echo "skip (not a file): $p"; continue; }
+            dir=$(dirname "$p"); file=$(basename "$p")
+            ( cd "$dir" && { sha256sum "$file" || shasum -a 256 "$file"; } ) > "${file}.sha256"
+            echo "checksummed: ${file}"
+          done <<< "$PATHS"
+          ls -l ./*.sha256 2>/dev/null || echo "no installer checksums produced"
+
+      - name: Upload desktop checksums to draft release
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          tag_name: ${{ github.ref_name }}
+          files: "*.sha256"
+
+      # Feed the aggregate SHA256SUMS job (below) without re-reading the draft release.
+      - name: Stash desktop checksums for aggregation
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums-desktop-${{ matrix.platform }}
+          path: "*.sha256"
+          if-no-files-found: warn
+
+      # Build provenance is best-effort: GitHub attestations aren't available for a private
+      # repo on this plan, so this must never fail the release (the .dmg + checksums still
+      # ship). It starts working once the repo is public / the plan includes attestations.
+      - name: Attest desktop installer provenance
+        uses: actions/attest-build-provenance@v4
+        continue-on-error: true
+        with:
+          subject-path: ${{ steps.artifacts.outputs.paths }}
+
+  # Standalone CLI binaries + Homebrew-shaped archives, uploaded to the same draft release.
+  # Build + packaging (universal-macOS lipo, .tar.gz archives, checksums) live in the
+  # committed, testable .github/scripts/package-cli.sh, so this job runs one command per OS.
+  cli:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, ubuntu-22.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          # macOS builds a universal binary; give it both Apple targets (mirrors the
+          # `desktop` job). package-cli.sh also `rustup target add`s them, so this is
+          # belt-and-suspenders that just removes the script's dependency on doing so.
+          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+      - uses: Swatinem/rust-cache@v2
+      - name: Build + package CLI
+        shell: bash
+        run: bash .github/scripts/package-cli.sh
+      - uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          tag_name: ${{ github.ref_name }}
+          files: promptdust-*
+      - name: Stash CLI checksums for aggregation
+        uses: actions/upload-artifact@v4
+        with:
+          name: checksums-cli-${{ matrix.os }}
+          path: "*.sha256"
+      - name: Attest CLI artifact provenance
+        uses: actions/attest-build-provenance@v4
+        continue-on-error: true # best-effort — see the desktop attest note
+        with:
+          # Ordering is load-bearing: the include line MUST precede the `!` exclude — the
+          # action feeds both lines to one @actions/glob call and applies the exclude across
+          # the include. This attests the bare binary + .tar.gz, not the .sha256 sidecars.
+          subject-path: |
+            promptdust-*
+            !promptdust-*.sha256
+
+  # Self-published CycloneDX SBOM for the Rust workspace (core + cli) and the
+  # excluded desktop crate — dogfoods the AI-BOM philosophy (doctrine A4/§9:
+  # "the auditor is auditable"). One bom.json per crate, collected + attested.
+  # Best-effort — never block a release on the SBOM (cyclonedx output naming varies).
+  sbom:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      # Pinned so the SBOM generator itself doesn't silently drift release-to-release.
+      - name: Install cargo-cyclonedx
+        run: cargo install cargo-cyclonedx --version 0.5.9 --locked
+      - name: Generate CycloneDX SBOMs
+        run: |
+          cargo cyclonedx --format json
+          ( cd desktop/src-tauri && cargo cyclonedx --format json )
+      - name: Collect SBOMs
+        shell: bash
+        run: |
+          mkdir -p sbom
+          while IFS= read -r f; do
+            d=$(dirname "$f"); d=${d#./}
+            case "$d" in
+              .) label=workspace ;;
+              desktop/src-tauri) label=desktop ;;
+              *) label=${d//\//-} ;;
+            esac
+            cp "$f" "sbom/promptdust-${label}.cdx.json"
+          done < <(find . \( -name bom.json -o -name '*.cdx.json' \) -not -path './sbom/*')
+          echo "collected SBOMs:"; ls -l sbom
+      - name: Attest SBOM provenance
+        uses: actions/attest-build-provenance@v4
+        continue-on-error: true
+        with:
+          subject-path: "sbom/*.cdx.json"
+      - name: Upload SBOMs to draft release
+        uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          tag_name: ${{ github.ref_name }}
+          files: "sbom/*.cdx.json"
+
+  # One consolidated SHA256SUMS manifest across every CLI binary + desktop installer,
+  # so a verifier can check them all against a single file. (SBOMs are verified via
+  # their own provenance attestation, not this manifest.)
+  checksums:
+    needs: [desktop, cli]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Gather per-artifact checksums
+        uses: actions/download-artifact@v4
+        with:
+          pattern: checksums-*
+          merge-multiple: true
+          path: sums
+      - name: Build SHA256SUMS
+        shell: bash
+        run: |
+          compgen -G "sums/*.sha256" > /dev/null \
+            || { echo "::error::no per-artifact checksums found to aggregate"; exit 1; }
+          cat sums/*.sha256 > SHA256SUMS
+          echo "=== SHA256SUMS ==="; cat SHA256SUMS
+      - uses: softprops/action-gh-release@v3
+        with:
+          draft: true
+          tag_name: ${{ github.ref_name }}
+          files: SHA256SUMS

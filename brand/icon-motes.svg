@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#123039"/>
+      <stop offset="0.5" stop-color="#0b1e24"/>
+      <stop offset="1" stop-color="#061215"/>
+    </linearGradient>
+    <radialGradient id="ambient" cx="0.5" cy="0.24" r="0.65">
+      <stop offset="0" stop-color="#f4d79a" stop-opacity="0.34"/>
+      <stop offset="0.5" stop-color="#e9c37a" stop-opacity="0.09"/>
+      <stop offset="1" stop-color="#e9c37a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fbe0a8" stop-opacity="0.52"/>
+      <stop offset="0.55" stop-color="#f0d094" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#e9c37a" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="beam2" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff0c8" stop-opacity="0.85"/>
+      <stop offset="0.5" stop-color="#f5d99a" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#f0d094" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="src" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fff5db" stop-opacity="1"/>
+      <stop offset="0.38" stop-color="#fbe6b0" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#f3d38f" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="haloWarm" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#f3d38f" stop-opacity="0.62"/>
+      <stop offset="1" stop-color="#f3d38f" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="haloAqua" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#59d8c6" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#59d8c6" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="tile">
+      <rect x="60" y="60" width="904" height="904" rx="202" ry="202"/>
+    </clipPath>
+  </defs>
+
+  <g clip-path="url(#tile)">
+    <rect x="60" y="60" width="904" height="904" fill="url(#bg)"/>
+    <rect x="60" y="60" width="904" height="904" fill="url(#ambient)"/>
+
+    <!-- beam: wide soft cone + narrow bright shaft (base fades to 0 alpha, so no hard edge) -->
+    <path d="M512 158 L724 822 L300 822 Z" fill="url(#beam)"/>
+    <path d="M512 176 L590 820 L434 820 Z" fill="url(#beam2)"/>
+
+    <!-- light source -->
+    <circle cx="512" cy="214" r="164" fill="url(#src)"/>
+    <circle cx="512" cy="208" r="34" fill="#fff8e6"/>
+
+    <!-- motes: glow halo + bright core -->
+    <circle cx="452" cy="402" r="42" fill="url(#haloWarm)"/>
+    <circle cx="452" cy="402" r="13" fill="#f0d49a"/>
+
+    <circle cx="606" cy="452" r="48" fill="url(#haloAqua)"/>
+    <circle cx="606" cy="452" r="12" fill="#c3efe6"/>
+
+    <circle cx="498" cy="548" r="74" fill="url(#haloWarm)"/>
+    <circle cx="498" cy="548" r="20" fill="#f5da9f"/>
+
+    <circle cx="590" cy="606" r="9" fill="#e9f1ff"/>
+
+    <circle cx="442" cy="632" r="32" fill="url(#haloAqua)"/>
+    <circle cx="442" cy="632" r="11" fill="#a3ded1"/>
+
+    <circle cx="548" cy="694" r="9" fill="#f0d49a"/>
+
+    <!-- faint far motes (atmosphere) -->
+    <circle cx="342" cy="336" r="6" fill="#cdd6ea" opacity="0.5"/>
+    <circle cx="704" cy="690" r="6" fill="#cdd6ea" opacity="0.42"/>
+    <circle cx="636" cy="738" r="5" fill="#f0d49a" opacity="0.5"/>
+  </g>
+</svg>

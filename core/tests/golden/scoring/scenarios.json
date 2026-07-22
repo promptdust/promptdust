@@ -1,0 +1,59 @@
+{
+  "_comment": [
+    "Golden fixtures for the dual endpoint score. Each scenario is transcribed from the",
+    "three worked scenarios in the vendored score_reference.py (the doctrine's authoritative",
+    "reference). score::exposure_of must reproduce expected_exposure, and score::assurance",
+    "(over coverage_gaps/evasion_signals/corroborated_findings) must reproduce",
+    "expected_assurance. NOTE: confirmed_types uses PromptDust's SensitivityType names; the",
+    "doctrine's 'source_code' (weight 1.15) is our 'source'. To regenerate: run",
+    "score_reference.py and read the 'EXPOSURE = N' / 'ASSURANCE = N' lines. A change here",
+    "means the scoring MODEL changed — update deliberately, never to make a test pass."
+  ],
+  "scenarios": [
+    {
+      "name": "A. Lightly-used machine (capability present, no confirmed content)",
+      "expected_exposure": 32,
+      "expected_band": "low",
+      "expected_assurance": 100,
+      "expected_assurance_band": "high",
+      "coverage_gaps": [],
+      "evasion_signals": [],
+      "corroborated_findings": 1,
+      "findings": [
+        { "definition_id": "ollama",         "base_weight": 3, "evidence_class": "usage",    "age_days": 5,  "confirmed_types": [] },
+        { "definition_id": "vscode-copilot", "base_weight": 6, "evidence_class": "presence", "age_days": 10, "confirmed_types": [] },
+        { "definition_id": "hf-cache",       "base_weight": 3, "evidence_class": "presence", "age_days": 30, "confirmed_types": [] }
+      ]
+    },
+    {
+      "name": "B. Confirmed live secret in transcripts (recent)",
+      "expected_exposure": 100,
+      "expected_band": "critical",
+      "expected_assurance": 100,
+      "expected_assurance_band": "high",
+      "coverage_gaps": [],
+      "evasion_signals": [],
+      "corroborated_findings": 3,
+      "findings": [
+        { "definition_id": "claude-code",   "base_weight": 8, "evidence_class": "content", "age_days": 2,  "confirmed_types": ["secret", "source"] },
+        { "definition_id": "cursor",        "base_weight": 8, "evidence_class": "content", "age_days": 7,  "confirmed_types": [] },
+        { "definition_id": "chatgpt",       "base_weight": 7, "evidence_class": "content", "age_days": 20, "confirmed_types": ["pii"] },
+        { "definition_id": "shell-history", "base_weight": 7, "evidence_class": "content", "age_days": 15, "confirmed_types": ["secret"] }
+      ]
+    },
+    {
+      "name": "C. Looks as empty as A - but evaded/blind (dual score earns its keep)",
+      "expected_exposure": 29,
+      "expected_band": "low",
+      "expected_assurance": 36,
+      "expected_assurance_band": "low",
+      "coverage_gaps": ["encrypted_at_rest_store", "obfuscated_store_present", "encrypted_swap_or_fde", "incognito_unobservable"],
+      "evasion_signals": ["shell_history_disabled", "app_present_store_absent", "history_present_but_empty"],
+      "corroborated_findings": 0,
+      "findings": [
+        { "definition_id": "chatgpt-sealed", "base_weight": 7, "evidence_class": "presence", "age_days": 3, "confirmed_types": [] },
+        { "definition_id": "windsurf",       "base_weight": 6, "evidence_class": "presence", "age_days": 8, "confirmed_types": [] }
+      ]
+    }
+  ]
+}

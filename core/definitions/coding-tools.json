@@ -1,0 +1,180 @@
+[
+  {
+    "schema_version": 1,
+    "id": "windsurf-workspace-state",
+    "tool": "Windsurf",
+    "vendor": "Codeium",
+    "platforms": [
+      "macos",
+      "windows",
+      "linux"
+    ],
+    "paths": [
+      {
+        "os": "macos",
+        "pattern": "~/Library/Application Support/Windsurf/User/workspaceStorage/**/state.vscdb",
+        "match": "file"
+      },
+      {
+        "os": "windows",
+        "pattern": "~/AppData/Roaming/Windsurf/User/workspaceStorage/**/state.vscdb",
+        "match": "file"
+      },
+      {
+        "os": "linux",
+        "pattern": "~/.config/Windsurf/User/workspaceStorage/**/state.vscdb",
+        "match": "file"
+      }
+    ],
+    "category": "transcript",
+    "format": "sqlite",
+    "sensitivity": "high",
+    "inspector": "sqlite_rowcount",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret", "pii", "source"],
+    "volatility": "rolling",
+    "storage_epochs": [
+      { "label": "obfuscated state", "note": "Windsurf obfuscates the stored workspace chat state; row-count metadata stays observable, the values do not" }
+    ],
+    "why": "Windsurf (a VS Code derivative) stores per-workspace chat state in local SQLite.",
+    "guidance": [
+      "Keep the Windsurf application-support folder out of cloud-synced locations."
+    ],
+    "confidence": "likely"
+  },
+  {
+    "schema_version": 1,
+    "id": "continue-sessions",
+    "tool": "Continue",
+    "vendor": "Continue",
+    "platforms": [
+      "macos",
+      "linux",
+      "windows"
+    ],
+    "paths": [
+      {
+        "pattern": "~/.continue/sessions/**/*.json",
+        "match": "file"
+      }
+    ],
+    "category": "transcript",
+    "format": "json",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret", "pii", "source"],
+    "why": "Continue stores chat sessions locally as JSON.",
+    "guidance": [
+      "Prune ~/.continue/sessions to reduce local retention."
+    ],
+    "confidence": "likely"
+  },
+  {
+    "schema_version": 1,
+    "id": "continue-config",
+    "tool": "Continue",
+    "vendor": "Continue",
+    "platforms": [
+      "macos",
+      "linux",
+      "windows"
+    ],
+    "paths": [
+      {
+        "pattern": "~/.continue/config.json",
+        "match": "file"
+      }
+    ],
+    "category": "config_with_secrets",
+    "format": "json",
+    "sensitivity": "high",
+    "base_weight": 75,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret"],
+    "why": "Continue configuration can contain model provider API keys.",
+    "guidance": [
+      "Ensure this file is not world-readable and not synced."
+    ],
+    "confidence": "likely"
+  },
+  {
+    "schema_version": 1,
+    "id": "aider-chat-history",
+    "tool": "Aider",
+    "vendor": "Aider",
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "paths": [
+      {
+        "pattern": "~/Projects/**/.aider.chat.history.md",
+        "match": "file"
+      },
+      {
+        "pattern": "~/projects/**/.aider.chat.history.md",
+        "match": "file"
+      },
+      {
+        "pattern": "~/Code/**/.aider.chat.history.md",
+        "match": "file"
+      },
+      {
+        "pattern": "~/code/**/.aider.chat.history.md",
+        "match": "file"
+      },
+      {
+        "pattern": "~/src/**/.aider.chat.history.md",
+        "match": "file"
+      },
+      {
+        "pattern": "~/dev/**/.aider.chat.history.md",
+        "match": "file"
+      },
+      {
+        "pattern": "~/work/**/.aider.chat.history.md",
+        "match": "file"
+      }
+    ],
+    "category": "transcript",
+    "format": "plaintext",
+    "sensitivity": "high",
+    "base_weight": 80,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret", "pii", "source"],
+    "why": "Aider writes chat history into the working directory, where it frequently lands inside a git repository.",
+    "guidance": [
+      "Add .aider.chat.history.md and .aider.input.history to your .gitignore.",
+      "For projects outside the common code roots, run a scan with --path <dir>."
+    ],
+    "confidence": "unverified"
+  },
+  {
+    "schema_version": 1,
+    "id": "ollama-store",
+    "tool": "Ollama",
+    "vendor": "Ollama",
+    "platforms": [
+      "macos",
+      "linux"
+    ],
+    "paths": [
+      {
+        "pattern": "~/.ollama",
+        "match": "dir"
+      }
+    ],
+    "category": "cache",
+    "format": "dir",
+    "sensitivity": "low",
+    "base_weight": 15,
+    "max_evidence_class": "presence",
+    "why": "Ollama stores local models and logs; mostly bulk model weights rather than conversation content (also a large_growth signal).",
+    "guidance": [
+      "Remove unused models with `ollama rm` to reclaim space."
+    ],
+    "confidence": "likely"
+  }
+]

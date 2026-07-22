@@ -1,0 +1,28 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="ground" cx="50%" cy="8%" r="105%">
+      <stop offset="0%" stop-color="#1c4b47"></stop>
+      <stop offset="48%" stop-color="#0f2b2c"></stop>
+      <stop offset="100%" stop-color="#0a1f20"></stop>
+    </radialGradient>
+  </defs>
+  
+  <rect x="0" y="0" width="1024" height="1024" rx="230" fill="url(#ground)"></rect>
+  
+  <g fill="none" stroke="#fff2c8" stroke-width="29" stroke-linecap="round">
+    <circle cx="512" cy="372" r="128"></circle>
+    <line x1="608" y1="468" x2="676" y2="536"></line>
+  </g>
+  <circle cx="512" cy="372" r="128" fill="#ffe9a8" opacity="0.10"></circle>
+  
+  <circle cx="360" cy="560" r="26" fill="#ffd97a"></circle>
+  <path d="M498 540 L512 571 L541 585 L512 599 L498 630 L484 599 L455 585 L484 571 Z" fill="#fff2c8"></path>
+  <path d="M632 600 L662 630 L632 660 L602 630 Z" fill="#3fd0c1"></path>
+  <circle cx="428" cy="700" r="21" fill="#3fd0c1"></circle>
+  <rect x="536" y="684" width="52" height="52" rx="10" transform="rotate(16 562 710)" fill="#e0b45f"></rect>
+  <path d="M344 782 L355 807 L378 817 L355 827 L344 852 L333 827 L310 817 L333 807 Z" fill="#ffd97a"></path>
+  <path d="M498 774 L528 804 L498 834 L468 804 Z" fill="#fff2c8"></path>
+  <circle cx="648" cy="796" r="22" fill="#ffd97a"></circle>
+  <path d="M412 862 L446 922 L378 922 Z" fill="#3fd0c1"></path>
+  <path d="M566 872 L577 897 L600 907 L577 917 L566 942 L555 917 L532 907 L555 897 Z" fill="#e0b45f"></path>
+</svg>

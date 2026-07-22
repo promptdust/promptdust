@@ -1,0 +1,219 @@
+# scoring_model.yaml — scoring POLICY (the scanner; codename TBD per charter §11.3)
+# ---------------------------------------------------------------------------
+# This file is POLICY, deliberately separated from the FACT BASE
+# (ai_detection_signatures.v2.yaml). Definitions carry intrinsic attributes;
+# this file decides how those attributes COMBINE into scores. Keep them apart
+# so thresholds can be tuned/tested without touching the shared facts
+# (01_Charter_and_Doctrine.md §8; same facts-vs-policy split as OPA/conftest).
+#
+# Implements the charter's dual score:  EXPOSURE (how bad) + ASSURANCE (how much
+# to trust the exposure number). One number lies; two do not. Human rubric with
+# worked numeric examples: Scoring_Rubric.md
+# ---------------------------------------------------------------------------
+schema_version: "1.0"
+generated: "2026-07-16"
+implements: "01_Charter_and_Doctrine.md §8 (Evidence & scoring philosophy)"
+principle: >
+  Every point of every score MUST trace to specific evidence (Charter A6).
+  Absence of expected artifacts lowers ASSURANCE (evasion) and NEVER lowers
+  EXPOSURE toward 'clean'. Correlated signals for one tool = one finding.
+
+# ===========================================================================
+# SCORES — definitions and bands
+# ===========================================================================
+scores:
+  exposure:
+    range: [0, 100]
+    meaning: "Magnitude of AI-related data risk found on the endpoint."
+    bands:
+      - {min: 0,  max: 19,  label: minimal}
+      - {min: 20, max: 39,  label: low}
+      - {min: 40, max: 59,  label: moderate}
+      - {min: 60, max: 79,  label: high}
+      - {min: 80, max: 100, label: critical}
+  assurance:
+    range: [0, 100]
+    meaning: "How much the Exposure score can be trusted (corroboration minus evasion and coverage gaps)."
+    bands:
+      - {min: 0,  max: 39,  label: low,     gloss: "blind or evaded — a low exposure here does NOT mean clean"}
+      - {min: 40, max: 69,  label: partial, gloss: "meaningful gaps in visibility"}
+      - {min: 70, max: 100, label: high,    gloss: "exposure number is trustworthy"}
+
+# 2x2 interpretation — read the two scores together, never in isolation
+interpretation_matrix:
+  high_exposure__high_assurance: "Confirmed exposure — act now."
+  high_exposure__low_assurance:  "Likely exposure, obscured — investigate."
+  low_exposure__high_assurance:  "Credibly clean."
+  low_exposure__low_assurance:   "NOT clean — possibly evaded or blind. Investigate before trusting."
+
+# ===========================================================================
+# EXPOSURE PIPELINE
+# signal -> finding -> per-finding contribution -> saturating aggregate
+# ===========================================================================
+
+# 1) Map each raw detection SIGNAL to the evidence class it establishes.
+signal_to_evidence_class:
+  installed_app: presence
+  config_path: presence
+  model_file: presence
+  ext_id: presence
+  listening_port: usage
+  running_process: usage
+  browser_history: usage
+  shell_history_hit: usage
+  persistence_entry: usage
+  conversation_store: content        # store that holds prompts/responses
+  deleted_transcript_recovered: content
+  conversation_shape_match: content  # AI-conversation structure found anywhere
+  credential_detected: content       # a secret is itself sensitive content
+  clipboard_ai_content: content
+
+# 2) Evidence-class multiplier on base_weight.
+evidence_class_multiplier:
+  presence: 0.3
+  usage:    0.6
+  content:  1.0
+
+# 3) Content factor — potential vs CONFIRMED sensitive content (from the classifier).
+#    'potential' = a content-class store exists but classifier found nothing / not run.
+#    'confirmed' = classifier hit; use the max sensitivity weight among confirmed types.
+content_factor:
+  potential: 1.0
+  confirmed_sensitivity_weight:      # max over confirmed types wins
+    secret:      1.6
+    phi:         1.5
+    pci:         1.5
+    regulated:   1.4
+    pii:         1.3
+    source_code: 1.15
+    business:    1.1
+  non_content_classes: 1.0           # presence/usage findings ignore content_factor
+
+# 4) Recency — exponential decay, floored (decay re-weights, never erases: Charter §8.5).
+recency_decay:
+  half_life_days: 180
+  floor: 0.35
+  formula: "recency_mult = max(floor, 0.5 ** (age_days / half_life_days))"
+  no_timestamp_default: 0.6          # unknown age -> conservative middle weight
+
+# 5) Per-finding contribution (before normalization).
+contribution_formula: "contribution = base_weight * evidence_class_multiplier * recency_mult * content_factor"
+
+# 6) Normalize each finding to a probability-like value, then combine with noisy-OR
+#    (diminishing returns; saturates at 100; prevents many-small-findings runaway).
+aggregation:
+  method: noisy_or
+  normalizer: 12.0                   # contribution/normalizer -> p_i
+  per_finding_cap: 0.9               # no single finding exceeds this
+  formula: "exposure = round(100 * (1 - PRODUCT_i(1 - p_i)))   where p_i = min(cap, contribution_i / normalizer)"
+
+# ===========================================================================
+# CORRELATION / DE-DUPLICATION  (Charter §8.4)
+# ===========================================================================
+correlation:
+  # Signals sharing a correlation key collapse into ONE finding.
+  correlation_key: definition_id      # e.g., path + port + process for 'ollama' = 1 finding
+  merge_rule: "finding.contribution = MAX(contribution over member signals)  (NOT sum)"
+  corroboration:
+    # A finding backed by >= N independent signal CLASSES is more trustworthy.
+    min_independent_signal_classes: 2
+    assurance_bonus_per_finding: 4
+    assurance_bonus_cap: 20
+
+# ===========================================================================
+# ASSURANCE MODEL   assurance = clamp(base - coverage - evasion + corroboration, 0, 100)
+# ===========================================================================
+assurance:
+  base: 100
+  total_coverage_penalty_cap: 50
+  total_evasion_penalty_cap: 45
+
+# Coverage gaps = we could not see, through no one's fault. Surface each explicitly.
+coverage_gaps:
+  - {id: encrypted_swap_or_fde,          penalty: 10, note: "swap/hibernation encrypted (FileVault/BitLocker/LUKS) — memory content not carvable"}
+  - {id: insufficient_privilege,         penalty: 10, note: "not enough privilege to read forensic artifacts / memory"}
+  - {id: containers_or_wsl_not_traversed,penalty: 10, note: "WSL/containers/VMs present but not scanned — parallel environment unseen"}
+  - {id: remote_or_hosted_dev_detected,  penalty: 12, note: "ssh/Codespaces/remote IDE — AI artifacts live off-box"}
+  - {id: unscanned_browser_profiles,     penalty: 8,  note: "browser profiles present but not enumerated/scanned"}
+  - {id: incognito_unobservable,         penalty: 8,  note: "private/incognito sessions leave no durable trace"}
+  - {id: encrypted_at_rest_store,        penalty: 6,  note: "content-store present but sealed (e.g., current ChatGPT app)"}
+  - {id: obfuscated_store_present,       penalty: 6,  note: "content-store obfuscated (e.g., Windsurf) — presence known, content not extractable"}
+  - {id: locked_keychain_credstore,      penalty: 5,  note: "OS secret store locked — credential contents unverifiable"}
+
+# Evasion signals = evidence of deliberate cleanup/obfuscation. First-class reported
+# items AND assurance penalties. They LOWER ASSURANCE, never lower EXPOSURE (Charter §8.3).
+evasion_signals:
+  - {id: shell_history_disabled,          penalty: 12, note: "HISTFILE unset / PSReadLine history off"}
+  - {id: history_present_but_empty,       penalty: 10, note: "history file exists but zero content — likely wiped"}
+  - {id: app_present_store_absent,        penalty: 12, note: "AI tool installed/used but its expected conversation store is missing/empty (and not sealed) — see absence_rules"}
+  - {id: transcripts_recently_wiped,      penalty: 12, note: "store dir exists but recently emptied, or many deleted rows in SQLite freelist"}
+  - {id: timestamps_scrubbed,             penalty: 10, note: "mtime/atime anomalies or uniform-timestamp scrubbing"}
+  - {id: tool_uninstalled_remnants_remain,penalty: 6,  note: "tool uninstalled but config/creds remnants remain — prior use + cleanup"}
+  - {id: clipboard_history_cleared,       penalty: 4,  note: "clipboard-manager history present but emptied"}
+
+# ===========================================================================
+# ABSENCE RULES — the crucial evasion-vs-coverage distinction (Charter §8.3)
+# "app installed/used but its content store is absent" is NOT 'clean'. It is either
+# EVASION (they wiped it) or a COVERAGE GAP (it's sealed). These branch differently.
+# ===========================================================================
+absence_rules:
+  trigger: "definition.max_evidence_class == content AND (presence OR usage signal present) AND no readable content store found"
+  branch:
+    - if: "tool's active storage_epoch has content_readable == false (encrypted/obfuscated)"
+      then: raise_coverage_gap        # encrypted_at_rest_store or obfuscated_store_present
+      rationale: "content is sealed, not deleted — a visibility limit, not evasion"
+    - else:
+      then: raise_evasion_signal      # app_present_store_absent
+      rationale: "a normally-present store is missing/empty — deliberate cleanup is the likely cause"
+  hard_rule: "NEITHER branch reduces Exposure. Absence never scores as clean."
+
+# ===========================================================================
+# FINDING SCHEMA — every finding MUST carry these (enforces explainability, A6)
+# ===========================================================================
+finding_schema:
+  required:
+    - finding_id
+    - definition_id            # links to fact base; null if heuristic-only
+    - tool_name
+    - evidence_class          # presence | usage | content (strongest signal in this finding)
+    - signals                 # list of {type, surface(S1-S13), locator, value_redacted?, timestamp}
+    - sensitivity_types_potential   # from definition
+    - sensitivity_types_confirmed   # from content classifier (may be empty)
+    - content_confirmed       # bool
+    - raw_content_accessed    # bool; §5.5 escalation, default false. Default findings carry the METADATA layer only (charter §5.1)
+    - base_weight
+    - computed                # {class_mult, recency_mult, content_factor, contribution, p}
+    - corroborated            # bool (>= min_independent_signal_classes)
+    - provenance              # {detector: definition|heuristic, definition_version, scan_time}
+  rule: "A finding whose 'computed' cannot be reproduced from its signals + this policy is invalid."
+
+# ===========================================================================
+# REPORT / OUTPUT SCHEMA — the endpoint AI-exposure profile
+# ===========================================================================
+output_schema:
+  report_version: string
+  generated: datetime
+  mode: "self_audit | managed | forensic"        # Charter §6.2
+  endpoint_id: "hashed/pseudonymous device id"
+  scope: "AI-layer; declared consented scope in managed/forensic"
+  exposure: {score: int, band: string}
+  assurance: {score: int, band: string}
+  interpretation: string                          # from interpretation_matrix
+  findings: "[finding_schema]"
+  evasion_signals: "[{id, evidence, penalty}]"    # surfaced explicitly, not just summed
+  coverage_gaps: "[{id, evidence, penalty}]"      # surfaced explicitly
+  corroborations: "[{definition_id, signal_classes}]"
+  timeline_ref: "correlated cross-artifact timeline (Charter §4.2)"
+  self_audit_log_ref: "append-only log of the scanner's own privileged actions (Charter §9)"
+  versions: {tool: string, definition_pack: string, scoring_model: string}
+  data_tier_note: "raw content NEVER embedded by default; findings carry the metadata layer only (classification label + non-reversible fingerprint). Raw values require §5.5 escalation (Charter §5)"
+
+# ===========================================================================
+# TUNING NOTES
+# ===========================================================================
+tuning:
+  - "normalizer (12.0) sets how much a single top finding moves Exposure; lower = more sensitive."
+  - "half_life_days (180) controls recency aggressiveness; floor (0.35) keeps old findings alive."
+  - "penalties are additive under caps; keep coverage vs evasion distinct in the report even when both fire."
+  - "sensitivity weights encode org risk appetite — regulated/PHI-heavy orgs may raise phi/pci/regulated."
+  - "all parameters are versioned policy; changing them is a scoring_model release, not a silent edit."

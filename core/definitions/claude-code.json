@@ -1,0 +1,64 @@
+[
+  {
+    "schema_version": 1,
+    "id": "claude-code-transcripts",
+    "tool": "Claude Code",
+    "vendor": "Anthropic",
+    "platforms": [
+      "macos",
+      "linux",
+      "windows"
+    ],
+    "paths": [
+      {
+        "pattern": "~/.claude/projects/*",
+        "match": "dir"
+      }
+    ],
+    "category": "transcript",
+    "format": "jsonl",
+    "sensitivity": "high",
+    "base_weight": 90,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret", "pii", "source"],
+    "retention_hint": "cleanupPeriodDays (default 30)",
+    "why": "One directory per project holding the verbatim JSONL history of your Claude Code sessions — every prompt, file read, command, and output — plus subagent and workflow logs.",
+    "guidance": [
+      "Set cleanupPeriodDays in your Claude Code settings to limit local retention.",
+      "Keep ~/.claude out of cloud-synced folders and git repositories."
+    ],
+    "confidence": "verified",
+    "references": [
+      "https://code.claude.com/docs/en/data-usage"
+    ]
+  },
+  {
+    "schema_version": 1,
+    "id": "claude-code-config",
+    "tool": "Claude Code",
+    "vendor": "Anthropic",
+    "platforms": [
+      "macos",
+      "linux",
+      "windows"
+    ],
+    "paths": [
+      {
+        "pattern": "~/.claude.json",
+        "match": "file"
+      }
+    ],
+    "category": "config_with_secrets",
+    "format": "json",
+    "sensitivity": "high",
+    "base_weight": 75,
+    "max_evidence_class": "content",
+    "sensitivity_types": ["secret"],
+    "why": "Claude Code configuration, which can include account and credential-adjacent material.",
+    "guidance": [
+      "Ensure this file is not world-readable.",
+      "Keep it out of synced folders and repositories."
+    ],
+    "confidence": "likely"
+  }
+]
