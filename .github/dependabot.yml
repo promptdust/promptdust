@@ -6,13 +6,17 @@ version: 2
 #
 # Note: the npm entry for the dependency-free desktop UI (desktop/ui) was removed —
 # there is no package.json there for Dependabot to manage (Q-15).
+#
+# Pre-launch pause: open-pull-requests-limit is 0, so Dependabot opens no routine
+# version-bump PRs (they were noise before announce). Security-advisory updates are
+# unaffected by the limit and still come through. Raise the limit to resume version PRs.
 updates:
   # Workspace crates (core + cli).
   - package-ecosystem: cargo
     directory: "/"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     groups:
       cargo:
         patterns:
@@ -23,7 +27,7 @@ updates:
     directory: "/desktop/src-tauri"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     groups:
       desktop-cargo:
         patterns:
@@ -33,7 +37,7 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 0
     groups:
       github-actions:
         patterns:
