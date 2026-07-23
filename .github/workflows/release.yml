@@ -87,9 +87,11 @@ jobs:
       # macOS (so the uploaded `.app.tar.gz` never gets covered), and on the v0.2.0 run its
       # `.msi` entry failed the per-file test and was silently skipped. Copying the real
       # bundle files into a flat dist/ makes checksums, the aggregate SHA256SUMS, and the
-      # provenance attestation cover exactly what ships. Bundle targets are pinned in
-      # tauri.conf.json (no `app` target, so no redundant `.app.tar.gz`), so this extension
-      # set is the complete ship list per platform. `find` (not a `**` glob) keeps this
+      # provenance attestation cover exactly what ships. The macOS `app` target (kept so the
+      # updater bundle `.app.tar.gz` gets produced — without it macOS drops out of latest.json)
+      # yields a `.app` directory plus that tarball, both handled by tauri-action, so neither
+      # belongs in this installer list. This extension set is the complete installer list per
+      # platform. `find` (not a `**` glob) keeps this
       # working on the macOS runner's bash 3.2, which has no `globstar`.
       - name: Collect + checksum desktop installers
         shell: bash

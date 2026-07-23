@@ -592,7 +592,7 @@ dependencies = [
 
 [[package]]
 name = "promptdust-cli"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "assert_cmd",
  "clap",
@@ -608,7 +608,7 @@ dependencies = [
 
 [[package]]
 name = "promptdust-core"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "dirs",
  "globset",
@@ -622,7 +622,7 @@ dependencies = [
 
 [[package]]
 name = "promptdust-telemetry"
-version = "0.3.0"
+version = "0.3.1"
 dependencies = [
  "dirs",
  "getrandom 0.2.17",

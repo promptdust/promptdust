@@ -7,6 +7,13 @@ database has its own CalVer, tracked in `core/definitions/VERSION`.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-07-23
+
+### Fixed
+- **macOS auto-update.** Release builds now produce the signed macOS updater bundle, so
+  `latest.json` covers macOS and in-app "Check for updates" works on Mac. It was missing in
+  0.3.0 (the `app` bundle target wasn't built), so only Linux and Windows could self-update.
+
 ## [0.3.0] - 2026-07-23
 
 The desktop app is rebuilt around a scan **Inbox** that remembers your runs.
@@ -101,6 +108,7 @@ code-signing certificates are in place.
 - Full project specification under `docs/` (context, requirements, architecture,
   build plan, environment, CI, decisions, definition catalog).
 
-[Unreleased]: https://github.com/promptdust/promptdust/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/promptdust/promptdust/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/promptdust/promptdust/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/promptdust/promptdust/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/promptdust/promptdust/releases/tag/v0.2.0

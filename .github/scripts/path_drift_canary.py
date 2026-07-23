@@ -29,6 +29,7 @@ import sys
 import urllib.error
 import urllib.request
 from pathlib import Path
+from urllib.parse import urlsplit
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SIG_DIR = REPO_ROOT / "core" / "definitions"
@@ -37,6 +38,12 @@ SCRIPTS_DIR = Path(__file__).resolve().parent
 USER_AGENT = "promptdust-path-drift-canary (+https://github.com/promptdust/promptdust)"
 TIMEOUT_SECS = 15
 DEAD_STATUSES = {404, 410}
+
+# Hosts that serve a 404/403 to any non-browser client (anti-bot or client-rendered
+# pages), so an automated probe can't tell "page removed" from "bot blocked". A 404
+# from one of these is reported as unverifiable, never a hard dead-link failure. The
+# VS Code Marketplace returns 404 to plain HTTP requests even for live extension pages.
+UNVERIFIABLE_HOSTS = {"marketplace.visualstudio.com"}
 
 
 def iter_definition_files() -> list[Path]:
@@ -64,6 +71,7 @@ def check_url(url: str) -> tuple[str, int | None, str]:
     """Probe a URL. Returns (verdict, status, detail) where verdict is one of
     'ok', 'dead', 'warn'. A HEAD is tried first, falling back to GET, because some
     hosts reject HEAD."""
+    host = urlsplit(url).hostname or ""
     for method in ("HEAD", "GET"):
         req = urllib.request.Request(
             url, method=method, headers={"User-Agent": USER_AGENT}
@@ -73,6 +81,9 @@ def check_url(url: str) -> tuple[str, int | None, str]:
                 return ("ok", resp.status, "")
         except urllib.error.HTTPError as exc:
             if exc.code in DEAD_STATUSES:
+                if host in UNVERIFIABLE_HOSTS:
+                    # Live page, but this host blocks automated checks — not a signal.
+                    return ("warn", exc.code, f"{exc.reason} (host blocks automated checks)")
                 return ("dead", exc.code, exc.reason)
             if exc.code == 405 and method == "HEAD":
                 continue  # method not allowed — retry with GET
