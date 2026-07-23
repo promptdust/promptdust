@@ -20,6 +20,9 @@ jobs:
   # action still produces (unsigned) installers, so a release is never blocked on
   # certificates (decision Q-14).
   desktop:
+    # Release only from the public repo. In the private promptdust-dev mirror this
+    # guard makes every release job a no-op, so a stray tag can't cut a dev release.
+    if: ${{ github.repository == 'promptdust/promptdust' }}
     strategy:
       fail-fast: false
       matrix:
@@ -141,6 +144,7 @@ jobs:
   # Build + packaging (universal-macOS lipo, .tar.gz archives, checksums) live in the
   # committed, testable .github/scripts/package-cli.sh, so this job runs one command per OS.
   cli:
+    if: ${{ github.repository == 'promptdust/promptdust' }}
     strategy:
       fail-fast: false
       matrix:
@@ -184,6 +188,7 @@ jobs:
   # "the auditor is auditable"). One bom.json per crate, collected + attested.
   # Best-effort — never block a release on the SBOM (cyclonedx output naming varies).
   sbom:
+    if: ${{ github.repository == 'promptdust/promptdust' }}
     runs-on: ubuntu-latest
     continue-on-error: true
     steps:
@@ -227,6 +232,7 @@ jobs:
   # so a verifier can check them all against a single file. (SBOMs are verified via
   # their own provenance attestation, not this manifest.)
   checksums:
+    if: ${{ github.repository == 'promptdust/promptdust' }}
     needs: [desktop, cli]
     runs-on: ubuntu-latest
     steps:

@@ -1,0 +1,16 @@
+{
+  "name": "promptdust-e2e",
+  "private": true,
+  "type": "module",
+  "description": "BDD screen-automation suite: drives the real desktop/ui in a real webview against a seedable JS fake backend.",
+  "scripts": {
+    "e2e": "bddgen && playwright test",
+    "e2e:headed": "bddgen && playwright test --headed",
+    "e2e:ui": "bddgen && playwright test --ui",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "playwright-bdd": "^9.2.0"
+  }
+}

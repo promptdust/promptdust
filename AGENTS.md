@@ -54,7 +54,7 @@ core/                 promptdust-core — the engine (no I/O beyond read-only FS
   definitions/         the definitions DB (JSON), bundled at compile time
     *.json            claude-code, cursor, coding-tools, vscode-copilot, desktop-apps
     _template.json    authoring template (leading _ ⇒ NOT loaded)
-    VERSION           definitions-DB CalVer (currently 2026.07.1)
+    VERSION           definitions-DB CalVer (currently 2026.07.5)
     schema/definition.schema.json
   tests/              integration: invariants, amplifiers, catalog, reliability, perf(ignored)
 cli/                  promptdust-cli — thin front-end over the engine
@@ -65,8 +65,10 @@ cli/                  promptdust-cli — thin front-end over the engine
 telemetry/            promptdust-telemetry — opt-in anonymous usage-telemetry client (front-end
                       only): consent store, env gate, payload, stubbed no-op sender (no network)
 desktop/              Tauri v2 app (EXCLUDED from the default cargo workspace)
-  src-tauri/src/lib.rs   seven read-only commands: run_scan / diagnostics / telemetry_status /
-                         telemetry_set_enabled / telemetry_preview / reveal / export_report
+  src-tauri/src/lib.rs   thirteen user-initiated commands: run_scan / diagnostics /
+                         telemetry_status / telemetry_set_enabled / telemetry_preview / reveal /
+                         export_report / save_scan / list_scans / load_scan / mark_scan_read /
+                         set_finding_state / share — none ever mutate a scanned file
   ui/                    plain-ESM UI; render.mjs is a tested pure renderer (node --test)
 docs/                 user + trust docs (INSTALL, USER-GUIDE, PRIVACY, TELEMETRY)
 .github/              CI (ci.yml), release (release.yml), guard scripts, templates
@@ -179,15 +181,17 @@ tests rely on both so they never touch the real `$HOME`/`~/.config`.
 
 ## Desktop surface
 
-Seven Tauri commands, all read-only / user-initiated: `run_scan` (off the UI thread),
-`diagnostics` (returns the redacted bug-report bundle, off-thread), `telemetry_status` /
-`telemetry_set_enabled` / `telemetry_preview` (read/set the opt-in consent — writes only the
-consent file — and preview the anonymous payload), `reveal` (opens the *folder* in the OS
-file manager, never file content), `export_report` (writes to
-`~/Downloads/promptdust-report-<ts>.json`). There is
-deliberately **no** command that mutates a scanned file; CI audits this. UI logic
-that turns report data → HTML lives in `ui/render.mjs` (pure, HTML-escaped, unit-
-tested); `ui/main.js` only wires events.
+Thirteen user-initiated commands: `run_scan` (off the UI thread), `diagnostics` (returns the
+redacted bug-report bundle, off-thread), `telemetry_status` / `telemetry_set_enabled` /
+`telemetry_preview` (read/set the opt-in consent — writes only the consent file — and preview
+the anonymous payload), `reveal` (opens the *folder* in the OS file manager, never file
+content), `export_report` (writes to `~/Downloads/promptdust-report-<ts>.json`), the local
+scan-history store `save_scan` / `list_scans` / `load_scan` / `mark_scan_read` /
+`set_finding_state` (persist past runs + per-item read/pin/flag state under the app's own
+config dir — ADR-022, INV-4 carve-out), and `share` (native macOS Share sheet). Every write
+targets the app's own config/export dirs; there is deliberately **no** command that mutates a
+scanned file, and CI audits this. UI logic that turns report data → HTML lives in
+`ui/render.mjs` (pure, HTML-escaped, unit-tested); `ui/main.js` only wires events.
 
 ## CI / workflows (`.github/workflows/`)
 

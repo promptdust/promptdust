@@ -1,0 +1,16 @@
+{
+  "name": "promptdust-app-smoke",
+  "private": true,
+  "type": "module",
+  "description": "Real-app smoke suite (WebdriverIO + tauri-driver). Linux/Windows CI only — macOS ships no WebDriver for WKWebView.",
+  "scripts": {
+    "fixture": "node fixture.mjs",
+    "smoke": "wdio run wdio.conf.js"
+  },
+  "devDependencies": {
+    "@wdio/cli": "^9.0.0",
+    "@wdio/local-runner": "^9.0.0",
+    "@wdio/cucumber-framework": "^9.0.0",
+    "@wdio/spec-reporter": "^9.0.0"
+  }
+}

@@ -1,36 +1,88 @@
-// DOM wiring for the PromptDust desktop app. All data→HTML lives in the tested
-// render.mjs; this file only handles state, events, and the three read-only Tauri
-// commands (run_scan / reveal / export_report). No network, no content — ever.
+// DOM wiring for the PromptDust desktop app (Panel + Inbox redesign). All data→HTML lives in
+// the tested render.mjs + panel.mjs; this file owns state, events, and the Tauri commands, and
+// re-renders the whole app from renderApp(state) on every change (the prototype's model).
+// No network, no content — ever.
+//
+// Structured for testability: the state transitions live in `dispatch(el)` and the async
+// command orchestration functions, all exercised in main.test.mjs with a mocked __TAURI__ and
+// fake elements. `render()` is a no-op without a DOM, and the DOM/event binding at the bottom
+// only registers when a document exists, so the module imports cleanly under `node --test`.
 
-import {
-  renderSummaryScreen,
-  renderResults,
-  renderDetail,
-  reportToMarkdown,
-  hasFindings,
-  osTerms,
-  detectOS,
-  renderRingOnePreview,
-} from "./render.mjs";
+import { hasFindings, reportToMarkdown, detectOS, humanSize } from "./render.mjs";
+import { renderApp, groupsOf } from "./panel.mjs";
 
-const invoke = (cmd, args) => {
+// Invoke a Tauri command. Reads __TAURI__ at call time so tests can inject a mock.
+export function invoke(cmd, args) {
   const tauri = globalThis.__TAURI__;
   if (!tauri) return Promise.reject(new Error("This page must run inside the PromptDust app."));
   return tauri.core.invoke(cmd, args);
+}
+
+export const state = {
+  screen: "welcome", // welcome | scanning | workspace | empty | permission
+  os: "unknown",
+  index: [], // list_scans: newest first
+  selRunId: null,
+  report: null,
+  itemState: {}, // path -> { read, pinned, flagged } for the selected run
+  filter: null,
+  expanded: new Set(), // expanded tool groups in the selected run
+  selPath: null,
+  inboxOpen: false,
+  listMenuOpen: false,
+  detailMenuOpen: false,
+  shareOpen: false,
+  infoOpen: false,
+  pinsOpen: false,
+  settingsOpen: false,
+  consentOpen: false,
+  telePreviewOpen: false,
+  diagOpen: false,
+  telemetry: false,
+  suppressedByEnv: false,
+  telePreviewText: "",
+  diagText: "",
+  toast: "",
+  scanning: false,
+  permMsg: "",
+  updateStatus: "",
 };
 
-const byId = (id) => document.getElementById(id);
-const SCREENS = ["welcome", "scanning", "summary", "results", "empty", "permission"];
-function show(screen) {
-  for (const s of SCREENS) byId(s).hidden = s !== screen;
-}
-function closeOverlay(which) {
-  byId(`${which}-overlay`).hidden = true;
+export function render() {
+  if (typeof document === "undefined") return; // node/test: no DOM to paint
+  const el = document.getElementById("app");
+  if (el) el.innerHTML = renderApp(state);
 }
 
-const state = { data: null, filter: null, format: "md" };
+let toastTimer;
+function toast(msg) {
+  clearTimeout(toastTimer);
+  state.toast = msg;
+  closeMenus();
+  render();
+  toastTimer = setTimeout(() => {
+    state.toast = "";
+    render();
+  }, 2600);
+  // Don't let a pending toast keep a headless process (tests) alive.
+  if (typeof toastTimer?.unref === "function") toastTimer.unref();
+}
 
-/* ---------- theme (in-app toggle; persists; overrides the OS default) ---------- */
+function closeMenus() {
+  state.listMenuOpen = false;
+  state.detailMenuOpen = false;
+  state.shareOpen = false;
+  state.infoOpen = false;
+  state.pinsOpen = false;
+}
+function closeOverlays() {
+  state.settingsOpen = false;
+  state.consentOpen = false;
+  state.telePreviewOpen = false;
+  state.diagOpen = false;
+}
+
+/* ---------------------------------------------------------------- theme */
 function applyTheme(theme) {
   const root = document.documentElement;
   if (theme === "dark" || theme === "light") root.setAttribute("data-theme", theme);
@@ -43,189 +95,422 @@ function toggleTheme() {
   const next = effective === "dark" ? "light" : "dark";
   applyTheme(next);
   localStorage.setItem("promptdust-theme", next);
+  render();
 }
 
-/* ---------- OS-aware copy (pre-scan) ---------- */
-// The report supplies host.os once a scan runs; before that, the welcome screen needs the
-// device name too. Resolve it from the webview's user-agent (detectOS degrades unrecognized
-// agents to neutral wording — never a wrong OS name).
-function applyPreScanCopy() {
-  const terms = osTerms(detectOS(navigator.userAgent));
-  const scanBtn = byId("scan-btn");
-  if (scanBtn) scanBtn.textContent = `Scan ${terms.device}`;
-  const promise = byId("promise-device");
-  if (promise) promise.textContent = `Never leaves ${terms.device}`;
-  const ringPreview = byId("ring1-preview");
-  if (ringPreview) ringPreview.innerHTML = renderRingOnePreview(terms.device);
+/* ---------------------------------------------------------------- helpers */
+function showError(err) {
+  state.scanning = false;
+  state.permMsg = String(err?.message ?? err);
+  state.screen = "permission";
+  render();
 }
 
-/* ---------- flow ---------- */
-async function runScan() {
-  state.filter = null;
-  show("scanning");
+async function copyText(t) {
   try {
-    // Ring 0 is the only ring collected today; the Ring-1 opt-in on the welcome is a disabled
-    // stub. The run_scan `mode` param is the seam — when the Ring-1 collectors land, read the
-    // (then-enabled) toggle here and send "usage" through it.
+    await globalThis.navigator?.clipboard?.writeText(t);
+  } catch {
+    /* clipboard unavailable — the toast still confirms intent */
+  }
+}
+
+function shareSummary(f) {
+  return `${f.tool} · ${f.path} · ${humanSize(f.size_bytes)} · ${f.exposure_level}`;
+}
+
+/* ---------------------------------------------------------------- data flow */
+export async function refreshTelemetry() {
+  try {
+    const s = JSON.parse(await invoke("telemetry_status"));
+    state.telemetry = !!s.enabled;
+    state.suppressedByEnv = !!s.suppressed_by_env;
+  } catch {
+    /* not in the app / no consent store yet — keep defaults */
+  }
+}
+
+export async function selectScan(runId) {
+  const run = JSON.parse(await invoke("load_scan", { runId }));
+  state.report = run.report;
+  state.itemState = run.item_state ?? {};
+  state.selRunId = runId;
+  state.os = state.report.host?.os ?? state.os;
+  state.filter = null;
+  const groups = groupsOf(state.report.findings ?? []);
+  state.expanded = new Set(groups.length ? [groups[0][0]] : []);
+  state.selPath = groups.length ? groups[0][1][0].f.path : null;
+  state.screen = "workspace";
+  closeMenus();
+  try {
+    await invoke("mark_scan_read", { runId });
+  } catch {
+    /* best effort */
+  }
+  const entry = state.index.find((e) => e.run_id === runId);
+  if (entry) entry.unread = false;
+  if (state.selPath) await persistFinding(runId, state.selPath, { read: true });
+  render();
+}
+
+export async function doScan({ inline }) {
+  if (state.scanning) return;
+  try {
+    if (inline) state.scanning = true;
+    else state.screen = "scanning";
+    render();
     const json = await invoke("run_scan", { noSlow: false, mode: "inventory" });
-    state.data = JSON.parse(json);
-    if (hasFindings(state.data)) {
-      byId("summary-body").innerHTML = renderSummaryScreen(state.data);
-      show("summary");
-    } else {
-      show("empty");
+    const report = JSON.parse(json);
+    if (!hasFindings(report)) {
+      state.scanning = false;
+      state.screen = "empty";
+      return render();
     }
+    const entry = JSON.parse(await invoke("save_scan", { reportJson: json }));
+    state.index.unshift(entry);
+    state.scanning = false;
+    await selectScan(entry.run_id);
   } catch (err) {
-    byId("perm-msg").textContent = String(err?.message ?? err);
-    show("permission");
+    showError(err);
   }
 }
 
-function renderResultsScreen() {
-  byId("results").innerHTML = renderResults(state.data, state.filter);
-  show("results");
+async function persistFinding(runId, path, patch) {
+  const st = state.itemState[path] ?? { read: false, pinned: false, flagged: false };
+  Object.assign(st, patch);
+  state.itemState[path] = st;
+  try {
+    await invoke("set_finding_state", { runId, path, patch });
+  } catch {
+    /* local cache still reflects it; a later save reconciles */
+  }
 }
 
-function openDetail(idx) {
-  const f = state.data?.findings?.[idx];
+async function selectFinding(idx) {
+  const f = state.report?.findings?.[idx];
   if (!f) return;
-  byId("detail-body").innerHTML = renderDetail(f, state.data?.host?.os);
-  byId("detail-overlay").hidden = false;
+  state.selPath = f.path;
+  closeMenus();
+  await persistFinding(state.selRunId, f.path, { read: true });
+  render();
 }
 
-function openExport() {
-  byId("export-result").hidden = true;
-  byId("export-overlay").hidden = false;
+async function listAction(a) {
+  if (a === "markread") {
+    for (const f of state.report?.findings ?? []) await persistFinding(state.selRunId, f.path, { read: true });
+    const entry = state.index.find((e) => e.run_id === state.selRunId);
+    if (entry) entry.unread = false;
+    toast("All items marked as read");
+  } else if (a === "expand") {
+    state.expanded = new Set((state.report?.findings ?? []).map((f) => f.tool));
+    state.listMenuOpen = false;
+    render();
+  } else if (a === "collapse") {
+    state.expanded.clear();
+    state.listMenuOpen = false;
+    render();
+  } else if (a === "export") {
+    state.listMenuOpen = false;
+    await exportReport();
+  }
 }
 
-function openAbout() {
-  byId("update-status").hidden = true;
-  byId("about-overlay").hidden = false;
+async function exportReport() {
+  try {
+    const saved = await invoke("export_report", {
+      contents: reportToMarkdown(state.report),
+      extension: "md",
+    });
+    toast(`Saved to ${saved}`);
+  } catch (err) {
+    toast(String(err?.message ?? err));
+  }
 }
 
-/* Opt-in, signed self-update (Q-03): runs only on this explicit click — never on a
-   timer or at launch. The updater plugin verifies the download against the configured
-   pubkey before install; here we just drive the check and report status. */
+async function detailAction(a) {
+  const path = state.selPath;
+  if (!path) return;
+  const st = state.itemState[path] ?? {};
+  if (a === "unread") {
+    await persistFinding(state.selRunId, path, { read: false });
+    toast("Marked as unread");
+  } else if (a === "pin") {
+    const v = !st.pinned;
+    await persistFinding(state.selRunId, path, { pinned: v });
+    toast(v ? "Pinned" : "Unpinned");
+  } else if (a === "flag") {
+    const v = !st.flagged;
+    await persistFinding(state.selRunId, path, { flagged: v });
+    toast(v ? "Flagged" : "Unflagged");
+  } else if (a === "copy") {
+    await copyText(path);
+    toast("Path copied");
+  }
+}
+
+async function shareAction(a) {
+  const f = state.report?.findings?.find((x) => x.path === state.selPath);
+  if (!f) return;
+  const summary = shareSummary(f);
+  if (a === "copy") {
+    await copyText(summary);
+    return toast("Summary copied");
+  }
+  try {
+    await invoke("share", { text: summary });
+    state.shareOpen = false;
+    render();
+  } catch {
+    // Share sheet is macOS-only; elsewhere fall back to the clipboard.
+    await copyText(summary);
+    toast("Summary copied");
+  }
+}
+
+async function revealSelected() {
+  if (!state.selPath) return;
+  try {
+    await invoke("reveal", { path: state.selPath });
+  } catch (err) {
+    showError(err);
+  }
+}
+
+async function setConsent(yes) {
+  try {
+    await invoke("telemetry_set_enabled", { enabled: yes });
+    state.telemetry = yes;
+  } catch {
+    /* leave state; the toast reflects intent */
+  }
+  state.consentOpen = false;
+  toast(yes ? "Anonymous sharing on — thank you" : "Sharing stays off");
+}
+
+async function toggleTelemetry() {
+  const v = !state.telemetry;
+  try {
+    await invoke("telemetry_set_enabled", { enabled: v });
+    state.telemetry = v;
+    toast(v ? "Anonymous sharing on" : "Sharing off");
+  } catch (err) {
+    toast(String(err?.message ?? err));
+  }
+}
+
+async function openTelePreview() {
+  state.telePreviewOpen = true;
+  state.telePreviewText = "";
+  render();
+  try {
+    state.telePreviewText = await invoke("telemetry_preview", { noSlow: false });
+  } catch (err) {
+    state.telePreviewText = String(err?.message ?? err);
+  }
+  render();
+}
+
+async function openDiag() {
+  state.diagOpen = true;
+  state.settingsOpen = false;
+  state.diagText = "";
+  render();
+  try {
+    state.diagText = await invoke("diagnostics", { noSlow: false });
+  } catch (err) {
+    state.diagText = String(err?.message ?? err);
+  }
+  render();
+}
+
+async function shareDiag() {
+  if (!state.diagText) return;
+  try {
+    await invoke("share", { text: state.diagText });
+    toast("Diagnostics shared");
+  } catch {
+    await copyText(state.diagText);
+    toast("Diagnostics copied");
+  }
+}
+
+// Opt-in, signed self-update (Q-03): runs only on this click, never in the background. The
+// updater plugin verifies the download against the configured pubkey before install. Inert
+// until a release publishes an update feed (createUpdaterArtifacts + signing key, see #7);
+// until then this reports "latest" / "not available".
 async function checkForUpdates() {
-  const status = byId("update-status");
-  const btn = byId("check-updates");
-  status.hidden = false;
-  const tauri = globalThis.__TAURI__;
-  if (!tauri) {
-    status.textContent = "Updates are only available in the installed app.";
-    return;
-  }
-  const updater = tauri.updater;
+  const updater = globalThis.__TAURI__?.updater;
   if (!updater?.check) {
-    status.textContent = "Update checking isn’t available in this build.";
-    return;
+    state.updateStatus = "Updates aren't available in this build.";
+    return render();
   }
-  btn.disabled = true;
-  status.textContent = "Checking…";
+  state.updateStatus = "Checking…";
+  render();
   try {
     const update = await updater.check();
     if (!update) {
-      status.textContent = "You’re on the latest version.";
-      return;
+      state.updateStatus = "You're on the latest version.";
+      return render();
     }
-    status.textContent = `Update ${update.version} available — downloading…`;
+    state.updateStatus = `Update ${update.version} available, downloading…`;
+    render();
     await update.downloadAndInstall();
-    status.textContent = `Updated to ${update.version}. Restart PromptDust to apply.`;
+    state.updateStatus = `Updated to ${update.version}. Restart PromptDust to apply.`;
   } catch (err) {
-    status.textContent = `Update check failed: ${String(err?.message ?? err)}`;
-  } finally {
-    btn.disabled = false;
+    state.updateStatus = `Update check failed: ${String(err?.message ?? err)}`;
   }
+  render();
 }
 
-async function doExport() {
-  if (!state.data) return;
-  const contents =
-    state.format === "json"
-      ? JSON.stringify(state.data, null, 2)
-      : reportToMarkdown(state.data);
-  const el = byId("export-result");
-  try {
-    const saved = await invoke("export_report", { contents, extension: state.format });
-    el.textContent = `Saved to ${saved}`;
-  } catch (err) {
-    el.textContent = String(err?.message ?? err);
+/* ---------------------------------------------------------------- click dispatch */
+// One delegated handler for the whole app. `el` is the clicked element (or a test fake with
+// `closest`/`dataset`). Returns the (possibly async) effect; callers re-render as needed.
+export function dispatch(el) {
+  if (!el) return undefined;
+
+  if (el.closest("[data-close-ov]")) {
+    closeOverlays();
+    return render();
   }
-  el.hidden = false;
+
+  if (el.closest("[data-scan-start]")) return doScan({ inline: false });
+  if (el.closest("[data-newscan]")) return doScan({ inline: true });
+  if (el.closest("[data-go-welcome]")) {
+    state.screen = "welcome";
+    return render();
+  }
+
+  if (el.closest("[data-inbox-toggle]")) {
+    state.inboxOpen = !state.inboxOpen;
+    return render();
+  }
+  const runEl = el.closest("[data-run]");
+  if (runEl) return selectScan(runEl.dataset.run);
+
+  const grpEl = el.closest("[data-group]");
+  if (grpEl) {
+    const tool = grpEl.dataset.group;
+    if (state.expanded.has(tool)) state.expanded.delete(tool);
+    else state.expanded.add(tool);
+    state.listMenuOpen = false;
+    return render();
+  }
+
+  const findEl = el.closest("[data-find]");
+  if (findEl) return selectFinding(Number(findEl.dataset.find));
+
+  if (el.closest("[data-listmenu-toggle]")) {
+    state.listMenuOpen = !state.listMenuOpen;
+    state.detailMenuOpen = state.shareOpen = state.infoOpen = state.pinsOpen = false;
+    return render();
+  }
+  const la = el.closest("[data-listaction]");
+  if (la) return listAction(la.dataset.listaction);
+
+  if (el.closest("[data-pins-toggle]")) {
+    state.pinsOpen = !state.pinsOpen;
+    state.listMenuOpen = state.detailMenuOpen = state.shareOpen = false;
+    return render();
+  }
+
+  const fl = el.closest("[data-flevel]");
+  if (fl) {
+    const lvl = fl.dataset.flevel || null;
+    state.filter = state.filter === lvl ? null : lvl;
+    // Applying a filter expands the groups that hold a matching finding, so they're visible.
+    // `expanded` stays the single source of truth, so a tool can still be collapsed while a
+    // filter is active (the render no longer force-opens groups).
+    if (state.filter) {
+      for (const f of state.report?.findings ?? []) {
+        if (f.exposure_level === state.filter) state.expanded.add(f.tool);
+      }
+    }
+    state.pinsOpen = state.listMenuOpen = false;
+    return render();
+  }
+
+  if (el.closest("[data-detailmenu-toggle]")) {
+    state.detailMenuOpen = !state.detailMenuOpen;
+    state.listMenuOpen = state.shareOpen = state.infoOpen = false;
+    return render();
+  }
+  const da = el.closest("[data-detailaction]");
+  if (da) return detailAction(da.dataset.detailaction);
+
+  if (el.closest("[data-share-toggle]")) {
+    state.shareOpen = !state.shareOpen;
+    state.detailMenuOpen = state.listMenuOpen = false;
+    return render();
+  }
+  const sh = el.closest("[data-share]");
+  if (sh) return shareAction(sh.dataset.share);
+  if (el.closest("[data-reveal]")) return revealSelected();
+
+  if (el.closest("[data-settings-toggle]")) {
+    state.settingsOpen = true;
+    state.infoOpen = false;
+    return render();
+  }
+  if (el.closest("[data-info-toggle]")) {
+    state.infoOpen = !state.infoOpen;
+    state.detailMenuOpen = state.listMenuOpen = state.shareOpen = false;
+    return render();
+  }
+  if (el.closest("[data-theme-toggle]")) return toggleTheme();
+
+  if (el.closest("[data-open-consent]")) {
+    state.consentOpen = true;
+    return render();
+  }
+  const cs = el.closest("[data-consent]");
+  if (cs) return setConsent(cs.dataset.consent === "yes");
+  if (el.closest("[data-tele-toggle]")) return toggleTelemetry();
+  if (el.closest("[data-tele-preview]")) return openTelePreview();
+  if (el.closest("[data-diag-open]")) return openDiag();
+  if (el.closest("[data-diag-share]")) return shareDiag();
+  if (el.closest("[data-check-updates]")) return checkForUpdates();
+
+  // A click outside any menu closes open menus/popovers.
+  if (!el.closest("[data-menu]")) {
+    if (state.listMenuOpen || state.detailMenuOpen || state.shareOpen || state.infoOpen || state.pinsOpen) {
+      closeMenus();
+      return render();
+    }
+  }
+  return undefined;
 }
 
-async function reveal(path) {
-  try {
-    await invoke("reveal", { path });
-  } catch (err) {
-    byId("perm-msg").textContent = String(err?.message ?? err);
-    show("permission");
-  }
-}
-
-/* ---------- one delegated click handler for the whole app ---------- */
 function onClick(e) {
   const el = e.target instanceof Element ? e.target : null;
-  if (!el) return;
-
-  const closeEl = el.closest("[data-close]");
-  if (closeEl) return closeOverlay(closeEl.dataset.close);
-
-  if (el.closest("#theme-toggle")) return toggleTheme();
-  if (el.closest("#about-btn")) return openAbout();
-  if (el.closest("#check-updates")) return checkForUpdates();
-  if (el.closest("#scan-btn") || el.closest("#perm-retry") || el.closest(".new-scan")) return runScan();
-  if (el.closest("#perm-welcome")) return show("welcome");
-  if (el.closest(".back-summary")) return show("summary");
-  if (el.closest("#see-inventory")) {
-    state.filter = null; // the full inventory is always unfiltered
-    return renderResultsScreen();
-  }
-
-  const seg = el.closest(".seg-btn");
-  if (seg) {
-    state.format = seg.dataset.fmt;
-    for (const b of document.querySelectorAll("#export-overlay .seg-btn")) {
-      b.classList.toggle("active", b === seg);
-    }
-    return;
-  }
-  if (el.closest("#export-do")) return doExport();
-  if (el.closest(".export-open")) return openExport();
-
-  const rev = el.closest(".reveal");
-  if (rev) return reveal(rev.dataset.path);
-
-  if (el.closest(".show-all")) {
-    state.filter = null;
-    return renderResultsScreen();
-  }
-
-  const chip = el.closest(".chip");
-  if (chip) {
-    const lvl = chip.dataset.level || null;
-    if (chip.closest("#summary-body")) {
-      state.filter = lvl; // summary chip → jump into filtered results
-      return renderResultsScreen();
-    }
-    state.filter = state.filter === lvl ? null : lvl; // results chip → toggle
-    return renderResultsScreen();
-  }
-
-  const finding = el.closest(".finding");
-  if (finding && finding.closest("#results")) return openDetail(Number(finding.dataset.idx));
+  dispatch(el);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const saved = localStorage.getItem("promptdust-theme");
+/* ---------------------------------------------------------------- boot */
+// Load history + telemetry status, then show the newest run (or welcome on first launch).
+export async function init() {
+  const saved = typeof localStorage !== "undefined" ? localStorage.getItem("promptdust-theme") : null;
   if (saved) applyTheme(saved);
-  applyPreScanCopy();
-  document.addEventListener("click", onClick);
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
-      closeOverlay("detail");
-      closeOverlay("export");
-      closeOverlay("about");
-    }
+  state.os = detectOS(globalThis.navigator?.userAgent);
+  await refreshTelemetry();
+  try {
+    const index = JSON.parse(await invoke("list_scans"));
+    state.index = index;
+    if (index.length) return selectScan(index[0].run_id);
+  } catch {
+    /* not in app / empty history → welcome */
+  }
+  render();
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("click", onClick);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeOverlays();
+        closeMenus();
+        render();
+      }
+    });
+    init();
   });
-});
+}

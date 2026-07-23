@@ -55,3 +55,7 @@ Thumbs.db
 # The plans, philosophy, roadmap, and white paper live here as working material,
 # separate from the committed product documentation in docs/.
 planning/
+
+# ---- Design working material (prototypes + handoffs, kept local, not committed) ----
+# Redesign prototypes and handoffs live here; the shipped UI in desktop/ui/ is the truth.
+.designs/

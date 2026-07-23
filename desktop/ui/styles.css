@@ -540,3 +540,13 @@ button.finding:hover { border-color: var(--border-strong); }
 .seg-btn.active { background: var(--accent); color: var(--on-accent); }
 .note.warn { background: var(--accent-soft); border-radius: var(--radius-md); padding: var(--space-3); margin-bottom: var(--space-4); }
 .modal-actions { display: flex; gap: var(--space-2); }
+
+/* ---- Panel + Inbox redesign: full-window root + spinner/indeterminate helpers ----
+   The workspace fills the OS window; the render tree (panel.mjs) uses inline styles over the
+   variables above, so only the app root sizing and two animation helpers live here. The
+   `spin` / `indet` keyframes are shared with the v1 scanning screen (defined above). */
+html, body { height: 100%; }
+#app { min-height: 100vh; }
+.pd-spin { animation: spin 0.9s linear infinite; }
+.pd-indet { animation: indet 1.4s var(--ease-standard) infinite; }
+@media (prefers-reduced-motion: reduce) { .pd-spin, .pd-indet { animation: none; } }

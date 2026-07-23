@@ -1,0 +1,70 @@
+# End-to-end tests for the desktop app. Two layers (see desktop/e2e/README.md):
+#  - ui-bdd:   drives the real UI in WebKit against a JS fake backend (all workflows).
+#  - app-smoke: drives the real built app via tauri-driver (real scan + IPC + persistence).
+# Gated to PRs + manual dispatch (the app-smoke build is expensive), matching ci.yml's posture.
+name: e2e
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ui-bdd:
+    name: UI workflows (Playwright BDD)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop/e2e
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: desktop/e2e/package-lock.json
+      - run: npm ci
+      - run: npx playwright install --with-deps webkit
+      - run: npm run e2e
+
+  app-smoke:
+    name: Real app smoke (WebdriverIO + tauri-driver)
+    # Heavy (full Tauri build + tauri-driver) and not yet proven — run in CI on demand only,
+    # not on every PR. The fast UI-BDD job above covers PRs. Promote to pull_request once green.
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: desktop/src-tauri
+      - name: System deps (WebKitGTK + WebKitWebDriver)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev libgtk-3-dev librsvg2-dev \
+            libayatana-appindicator3-dev webkit2gtk-driver xvfb
+      - name: Install tauri-driver
+        run: cargo install tauri-driver --locked
+      - name: Build the desktop app (frontend embedded at compile time)
+        run: cargo build --release --manifest-path desktop/src-tauri/Cargo.toml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install smoke-suite deps
+        working-directory: desktop/e2e/app-smoke
+        run: npm install
+      - name: Run smoke suite
+        working-directory: desktop/e2e/app-smoke
+        env:
+          PROMPTDUST_HOME: ${{ runner.temp }}/pd-home
+          PROMPTDUST_CONFIG_DIR: ${{ runner.temp }}/pd-config
+          PROMPTDUST_TELEMETRY: "0"
+          PD_APP_BINARY: ${{ github.workspace }}/desktop/src-tauri/target/release/promptdust-desktop
+        run: |
+          node fixture.mjs
+          xvfb-run -a npm run smoke

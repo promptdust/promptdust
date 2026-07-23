@@ -5,12 +5,24 @@ All notable changes to this project are documented here. The format follows
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The bundled definition
 database has its own CalVer, tracked in `core/definitions/VERSION`.
 
-> **Status: paused (2026-07).** This changelog is not actively maintained while PromptDust
-> is pre-distribution — nothing ships to a developer audience yet, so there is no changelog
-> reader. Until the first developer-facing release, changes live in the git history and PR
-> descriptions; maintenance resumes when we ship.
-
 ## [Unreleased]
+
+## [0.3.0] - 2026-07-23
+
+The desktop app is rebuilt around a scan **Inbox** that remembers your runs.
+
+### Added
+- **Scan history (the Inbox).** Every scan is saved locally, so you can revisit past runs, keep per-item read state, and pin or flag findings. All on-device, read-only, metadata-only.
+- **Three-pane workspace** replacing the single-scan flow: an Inbox rail, a collapsible findings list with attention filters, and a persistent detail pane.
+- **Native Share** for a finding's metadata summary (the macOS Share sheet; clipboard elsewhere).
+- **Settings › Privacy**: preview the exact anonymous-usage payload before enabling it, and create a redacted, path-free diagnostics bundle to inspect before sharing.
+- **Opt-in self-updater.** "Check for updates" downloads, verifies, and installs an update in place, with no full re-download. It only checks when you click, never in the background.
+
+### Changed
+- The second score is now labeled **Confidence** (how complete the look was, not a grade), and "places" are now **Traces**.
+
+### Notes
+- Builds are still honestly unsigned; macOS and Windows warn on first launch (see the install guide). Code signing is tracked separately and changes nothing about what the tool does.
 
 ## [0.2.0] - 2026-07-22
 
@@ -89,5 +101,6 @@ code-signing certificates are in place.
 - Full project specification under `docs/` (context, requirements, architecture,
   build plan, environment, CI, decisions, definition catalog).
 
-[Unreleased]: https://github.com/promptdust/promptdust/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/promptdust/promptdust/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/promptdust/promptdust/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/promptdust/promptdust/releases/tag/v0.2.0
