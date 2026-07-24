@@ -1,0 +1,46 @@
+name: notify-website
+
+# Bridge between this repo (the engine) and the website repo (promptdust-website).
+#
+# The website resolves its desktop download links from the github.com /releases/latest
+# redirect at BUILD time, and Cloudflare Pages only rebuilds on a push to the WEBSITE
+# repo — so it can't see a release published here, and its download links go stale until
+# something rebuilds it. This pings the website's Cloudflare Pages deploy hook so it
+# rebuilds and re-resolves the installers to the just-published version.
+#
+# Trigger is `release: published`, NOT the tag push that release.yml uses: release.yml
+# creates a DRAFT, and /releases/latest does not move to the new tag until a human
+# publishes that draft. Firing on the tag push would rebuild the site while it still
+# resolves to the previous release.
+#
+# Setup (one-time): create a Deploy hook on the Cloudflare Pages project
+# (project → Settings → Builds & deployments → Deploy hooks), then add its URL as the
+# repo secret CLOUDFLARE_DEPLOY_HOOK_URL. Until that secret exists this workflow no-ops
+# with a warning, so it is safe to land before the hook is created.
+
+on:
+  release:
+    types: [published]
+
+# No repo contents are touched; the job only makes one outbound POST.
+permissions: {}
+
+jobs:
+  redeploy-website:
+    # Skip prereleases: /releases/latest ignores them, so rebuilding would resolve the
+    # same "latest" version. Only a real latest release should refresh the site.
+    if: ${{ !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Cloudflare Pages deploy hook
+        env:
+          HOOK: ${{ secrets.CLOUDFLARE_DEPLOY_HOOK_URL }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [ -z "$HOOK" ]; then
+            echo "::warning::CLOUDFLARE_DEPLOY_HOOK_URL secret not set — skipping website redeploy."
+            exit 0
+          fi
+          echo "Release $TAG published; triggering website rebuild."
+          curl -fsS --retry 3 --retry-delay 5 -X POST "$HOOK" \
+            -o /dev/null -w "deploy hook HTTP %{http_code}\n"
